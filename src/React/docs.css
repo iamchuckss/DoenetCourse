@@ -132,7 +132,7 @@ body{
 }
 
 .docs-content-heading h1 {
-  font-size: 2.5em;
+  font-size: 2em;
 }
 
 .properties-name {
@@ -167,7 +167,22 @@ body{
   outline: none;
 }
 
-@media only screen and (max-width: 600px) {
+@media only screen and (max-width: 1007px) {
+  .docs-content-heading h1 {
+    font-size: 1.8em;
+  }
+
+  .properties-container h2, .child-components-container h2{
+    font-size: 1.3em;
+  }
+
+  .docs-content {
+    padding: 0em 3em 1em 4em;
+  }
+  
+}
+
+@media only screen and (max-width: 640px) {
   .side-panel{
     margin-top: 120px;
   }
