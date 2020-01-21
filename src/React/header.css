@@ -206,7 +206,7 @@
   text-decoration: none;
 }
 
-@media only screen and (max-width: 768px) {
+@media only screen and (max-width: 1007px) {
 
   .toolTitle {
     width: 270px;
@@ -248,7 +248,7 @@
   }
 }
 
-@media only screen and (max-width: 600px) {
+@media only screen and (max-width: 640px) {
   .headingContainerWrapper {
     height: 100%;
     margin-bottom: 130px;
@@ -280,6 +280,7 @@
     justify-content: space-between;
     padding: 0 20px;
     margin: 0 auto;
+    width: 100%;
     text-align: center;
   }
 
@@ -287,19 +288,5 @@
     width: 160px;
     top: 40px;
     right: -55px;
-  }
-}
-
-@media only screen and (max-width: 320px) {
-  .headingToolbar {
-    width: 100%;
-  }
-
-  .toolbox {
-    width: 160px;
-  }
-
-  #username {
-    display: none;
   }
 }
