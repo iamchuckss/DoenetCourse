@@ -427,12 +427,48 @@ input[type=number]::-webkit-outer-spin-button {
   flex-wrap: wrap;
 }
 
-@media only screen and (max-width: 375px) {
-  #chooserContainer {
-    display: block;
+
+@media only screen and (max-width: 1007px) {
+
+  #topToolbar {
+    padding: 0px;
+    font-size: 19px;
   }
 
-  #chooserBoxes {
-    justify-content: center;
+  #chooserContainer {
+    grid-template-columns: 185px auto 400px;
   }
+
+  .leftNavPanel {
+    width: 185px;
+  }
+
+  #newContentButtonContainer {
+    margin: 15px 15px 0px 15px;
+  }
+  
+  #newContentButton {
+    font-size: 11px;
+    height: 35px;
+    min-width: 100px;
+    padding: 0px 6px 0px 6px;
+  }
+
+  #newContentButtonMenu {
+    width: 165px;
+    top: 75px;
+  }
+
+  .newContentButtonMenuItem {
+    font-size: 13px;
+  }
+
+  .leftNavPanelMenuItem {
+    padding: 10px 1px 10px 10px;
+    font-size: 12px;
+  }
+}
+
+@media only screen and (max-width: 641px) {
+  
 }
