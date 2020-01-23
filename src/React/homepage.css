@@ -303,7 +303,7 @@ font-weight: 300;
   color:#111; 
 }
 
-@media only screen and (max-width: 600px) {
+@media only screen and (max-width: 640px) {
   .heading-banner {
     min-height: 300px;
   }

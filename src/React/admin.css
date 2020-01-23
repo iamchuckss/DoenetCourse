@@ -235,7 +235,7 @@ body{
 .Section-Icon-Box {
     padding:6px;
 }
-@media only screen and (max-width: 600px) {
+@media only screen and (max-width: 640px) {
     .courseContainer{
         grid-template-rows: 120px auto;
     }
