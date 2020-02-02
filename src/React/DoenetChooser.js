@@ -68,6 +68,7 @@ class DoenetChooser extends Component {
     this.renameFolder = this.renameFolder.bind(this);
     this.modifyPublicState = this.modifyPublicState.bind(this);
     this.addContentToRepo = this.addContentToRepo.bind(this);
+    this.loadFilteredContent = this.loadFilteredContent.bind(this);
   }
 
 
@@ -166,7 +167,9 @@ class DoenetChooser extends Component {
         toolbarTitle = this.courseInfo[this.state.selectedCourse].courseCode + ' - '
         + this.courseInfo[this.state.selectedCourse].courseName;
       }  else if (this.state.selectedDrive === "Global") {
-        toolbarTitle = <FilterForm/>
+        toolbarTitle = <React.Fragment>
+            <FilterPanel loadFilteredContent={this.loadFilteredContent}/>
+          </React.Fragment>
       }
 
     } else if (this.state.activeSection === "add_course") {
@@ -403,7 +406,8 @@ class DoenetChooser extends Component {
     axios.get(loadCoursesUrl,payload)
     .then(resp=>{
       this.branchId_info = Object.assign({}, this.branchId_info, resp.data.branchInfo);
-      this.folderInfo = Object.assign({}, this.folderInfo, resp.data.folderInfo);
+      // this.folderInfo = Object.assign({}, this.folderInfo, resp.data.folderInfo);
+      this.folderInfo = {...this.folderInfo, ...resp.data.folderInfo};
       this.folders_loaded = true;
       this.branches_loaded = true;
       callback();
@@ -448,6 +452,8 @@ class DoenetChooser extends Component {
         activeSection: "chooser",
         selectedDrive: drive,
         directoryStack: []});
+      this.sort_order = [];
+      this.folderIds = [];
     } else {
       this.setState({
         selectedItems: [],
@@ -828,6 +834,70 @@ class DoenetChooser extends Component {
     });
   }
 
+  loadFilteredContent(filters, callback=(()=>{})) {
+
+    const typeToSQLMap = {
+      "Folder name" : "title",
+      "Content name" : "title",
+      "Author" : "author",
+      "Creation date" : "timestamp"
+    }
+    const operatorsToSQLMap = {
+      "IS" : "=",
+      "IS NOT" : "!=",
+      "IS LIKE" : "LIKE",
+      "IS NOT LIKE" : "NOT LIKE",
+      "ON" : "=",
+      "<" : "<",
+      "<=" : "<=",
+      ">" : ">",
+      ">=" : ">="
+    }
+    // process filters
+    this.branches_loaded = false;
+    let processedFilters = [];
+    let folderOnly = false;
+    let contentOnly = false;
+    filters.forEach(filter => {
+      let sql = "";
+      let filterValue = filter.value;
+      if (filter.type == "Folder name") folderOnly = true;
+      else if (filter.type == "Content name") contentOnly = true;
+      else if (filter.type == "Creation date") filterValue = new Date(filterValue).toISOString().slice(0, 19).replace('T', ' ');
+
+      sql += `${typeToSQLMap[filter.type]} ${operatorsToSQLMap[filter.operator]} `;
+      if (filter.operator == "IS LIKE" || filter.operator == "IS NOT LIKE") {
+        sql += `'%${filterValue}%'`;        
+      } else {
+        sql += `'${filterValue}'`;
+      }
+      if (filterValue != null) processedFilters.push(sql);
+    })
+
+    if (folderOnly && contentOnly) {
+      folderOnly = false;
+      contentOnly = false;
+    }
+
+    const url='/api/loadFilteredContent.php';
+    const data={
+      folderOnly: folderOnly,
+      contentOnly: contentOnly,
+      filters: processedFilters
+    }
+    axios.post(url, data)
+    .then(resp => {
+      callback();
+      this.branchId_info = Object.assign({}, this.branchId_info, resp.data.branchId_info);
+      this.sort_order = resp.data.sort_order;
+      this.branches_loaded = true;
+      this.forceUpdate();
+    })
+    .catch(function (error) {
+      this.setState({error:error});
+    })
+  }
+
   render(){
 
     if (!this.courses_loaded){
@@ -855,7 +925,7 @@ class DoenetChooser extends Component {
     else {
       let folderList = [];
       let contentList = [];
-      if (this.state.selectedDrive == "Content") {
+      if (this.state.selectedDrive == "Content" || this.state.selectedDrive == "Global") {
         folderList = this.folderIds;
         contentList = this.sort_order;
       } else if (this.state.selectedDrive == "Courses") {
@@ -1200,75 +1270,119 @@ class AccordionSection extends Component {
   }
 }
 
-function FilterForm () {
+class FilterPanel extends Component {
 
-  let filterTypes = ["Folder name", "Content name", "Author", "Creation date"];
+  constructor(props) {
+    super(props);
+    this.state = { showFilters: false };
+
+    this.togglePanel = this.togglePanel.bind(this);
+  }
+
+  togglePanel = () => {
+    this.setState(prevState => ({
+      showFilters: !prevState.showFilters
+    }));    
+  }
+
+  render() {
+    return (
+      <div id="filterPanel">
+        <span>Search Globally</span>
+        <button id="editFiltersButton" onClick={this.togglePanel}>Edit Filters</button>
+        <FilterForm show={this.state.showFilters} loadFilteredContent={this.props.loadFilteredContent} togglePanel={this.togglePanel}/>
+      </div>
+    );
+  }
+}
+
+const FilterForm = (props) => {
+
+  let filterTypes = ["Content name", "Folder name", "Author", "Creation date"];
 
   let allowedOperators = {
-    "Folder name" : ["IS LIKE", "IS NOT LIKE", "IS", "IS NOT"],
     "Content name" : ["IS LIKE", "IS NOT LIKE", "IS", "IS NOT"],
+    "Folder name" : ["IS LIKE", "IS NOT LIKE", "IS", "IS NOT"],
     "Author" : ["IS", "IS NOT"],
     "Creation date" : ["ON", "<", "<=", ">", ">="]
   }
   
-  const [filters, setFilters] = useState([{ type: "Folder name", operator: "IS LIKE", value: null}]);
+  const [filters, setFilters] = useState([{ type: "Content name", operator: "IS LIKE", value: null}]);
 
   function handleChange(i, event, field) {
     const values = [...filters];
-    console.log(field);
-    console.log(event);
     if (field == "type") {
       values[i].type = event.target.value;
+      values[i].operator = allowedOperators[event.target.value][0];
+      if (values[i].type == "Creation date") values[i].value = "2020-01-01T00:00";
+      else values[i].value = "";
     } else if (field == "operator") {
       values[i].operator = event.target.value;
     } else {
       values[i].value = event.target.value;
     }
-    
     setFilters(values);
   }
 
   function handleAdd() {
     const values = [...filters];
-    values.push({ type: "Folder name", operator: "IS LIKE", value: null});
+    values.push({ type: "Content name", operator: "IS LIKE", value: null});
     setFilters(values);
   }
 
   function handleRemove(i) {
     const values = [...filters];
-    values.splice(i, 1);
+    if (values.length != 1) {
+      values.splice(i, 1);
+    }
     setFilters(values);
   }
 
-  return (
-    <div className="App">
-      <button type="button" onClick={() => handleAdd()}> + </button>
+  function handleSearch() {
+    const values = [...filters];
+    props.loadFilteredContent(values);
+    props.togglePanel();
+  }
 
+  return (
+    props.show && 
+    <div id="filterForm">
+      <button id="addFilterButton" type="button" onClick={() => handleAdd()}> + </button>
       {filters.map((filter, idx) => {
         return (
-          <div key={`${filter}-${idx}`}>
-            <select onChange={e => handleChange(idx, e, "type")} value={filter.type}>
+          <div className="filter" key={`${filter}-${idx}`}>
+            <select className="filterSelectInput" onChange={e => handleChange(idx, e, "type")} value={filter.type}>
               {filterTypes.map(filterType => {
                 return <option key={"filterType" + Math.random() * 50} value={filterType}>{filterType}</option>
               })}
             </select>
-            <select onChange={e => handleChange(idx, e, "operator")} value={allowedOperators[filter.type][0]}>
+            <select className="filterSelectInput" onChange={e => handleChange(idx, e, "operator")} value={filter.operator}>
               {allowedOperators[filter.type].map(operator => {
                 return <option key={"filterType" + Math.random() * 50} value={operator}>{operator}</option>
               })}
             </select>
+            { filter.type == "Creation date" ?
+            <input type="datetime-local" id="meeting-time"
+              className="filterValueInput"
+              name="meeting-time" onChange={e => handleChange(idx, e, "value")}
+              value={filter.value || "2020-01-01T00:00"}
+              ></input>
+            :
             <input
               type="text"
-              placeholder="Enter text"
+              className="filterValueInput"
+              placeholder={filter.type == "Author" ? "Username/Last or First Name" : ""}
               value={filter.value || ""}
               onChange={e => handleChange(idx, e, "value")}
             />
-            <button type="button" onClick={() => handleRemove(idx)}>
+            }
+            <button id="removeFilterButton" type="button" onClick={() => handleRemove(idx)}>
               X
             </button>
           </div>
         );
       })}
+      <button id="applyFilterButton" type="button" onClick={() => handleSearch()}> Apply Filters </button>
     </div>
   );
 }

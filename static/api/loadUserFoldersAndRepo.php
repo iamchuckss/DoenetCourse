@@ -103,6 +103,30 @@ if ($result->num_rows > 0){
   }
 }
 
+// get children content and folders
+$sql="
+SELECT 
+ fc.folderId as folderId,
+ fc.childId as childId,
+ fc.childType as childType,
+ fc.timestamp as creationDate
+FROM folder_content AS fc
+WHERE fc.removedFlag=0 AND fc.folderId IN ('".implode("','",$all_fi_array)."')
+ORDER BY fc.folderId
+";
+
+$result = $conn->query($sql); 
+
+if ($result->num_rows > 0){
+  while($row = $result->fetch_assoc()){ 
+    if ($row["childType"] == "content") {
+      array_push($folder_info_arr[$row["folderId"]]["childContent"], $row["childId"]);
+    } else if ($row["childType"] == "folder"){
+      array_push($folder_info_arr[$row["folderId"]]["childFolders"], $row["childId"]);
+    }
+  }
+}
+
 $response_arr = array(
   "folderInfo"=>$folder_info_arr,
   "folderIds"=>$fi_array,
