@@ -13,6 +13,8 @@ import IndexedDB from '../services/IndexedDB';
 import DoenetBranchBrowser from './DoenetBranchBrowser';
 import SpinningLoader from './SpinningLoader';
 import { ToastContext, useToasts, ToastProvider } from './ToastManager';
+import ToolLayout from "./ToolLayout/ToolLayout";
+import ToolLayoutPanel from "./ToolLayout/ToolLayoutPanel";
 
 
 class DoenetChooser extends Component {
@@ -1146,10 +1148,19 @@ class DoenetChooser extends Component {
       <DoenetHeader toolTitle="Chooser" headingTitle={"Choose Branches"} />
       <ToastProvider>
         <div id="chooserContainer">
-          <this.ToastWrapper/>
-          { this.leftNavPanel }
-          { this.topToolbar }
-          { this.mainSection }     
+          <ToolLayout>
+            <this.ToastWrapper/>
+            <ToolLayoutPanel panelName="LeftNavPanel">
+              { this.leftNavPanel }
+            </ToolLayoutPanel>
+            <ToolLayoutPanel panelName="BrowserPanel">
+              { this.topToolbar }
+              { this.mainSection }     
+            </ToolLayoutPanel>
+            <ToolLayoutPanel panelName="InfoPanel">
+              <div><span>Temp Info Panel</span></div>
+            </ToolLayoutPanel>
+          </ToolLayout>
         </div>
       </ToastProvider>
     </React.Fragment>);
