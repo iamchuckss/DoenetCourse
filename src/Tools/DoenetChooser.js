@@ -2882,7 +2882,6 @@ class InfoPanel extends Component {
   }
 
   buildInfoPanelItemDetails(selectedItemId, selectedItemType) {
-    console.log(selectedItemId)
     this.infoPanelDetails = [];
     let itemDetails = {};
     if (selectedItemType === "folder") {

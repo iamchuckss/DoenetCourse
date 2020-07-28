@@ -64,7 +64,10 @@ import styled from 'styled-components'
               title: {},
               frame: {},
             },
-            expanderIcons:          
+            expanderIcons: {
+              opened: <span></span>,
+              closed: <span></span>
+            }
           }
       - parentNodeOnClick
 			- childNodeOnClickCallback
