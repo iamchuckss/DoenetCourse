@@ -1,46 +1,50 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { RFC_2822 } from 'moment';
 
 
 //Simple folder contents
 export default function temp() {
   const [count,setCount] = useState(0);
-  const [label2,setLabel2] = useState("my folder2");
-  const [labels,setLabels] = useState(["my folder1","my folder2"]);
   const [contentObj, setContentObj] = useState(
     {'rf1':{
       label:"root folder",
-      contentIds:['f1','f3']
+      contentIds:['f1','f3'],
+      open:true,
     },
     'rf2':{
       label:"root folder 2",
-      contentIds:['f4']
+      contentIds:['f4'],
+      open:true,
     },
     'f1':{
       label: "folder one",
-      contentIds:['f2']
+      contentIds:['f2'],
+      open:true,
     },
     'f2':{
       label:"folder two",
-      contentIds:[]
+      contentIds:[],
+      open:true,
     },
     'f3':{
       label:"folder three",
-      contentIds:[]
+      contentIds:[],
+      open:true,
     },
     'f4': {
       label:"folder four",
-      contentIds:[]
+      contentIds:[],
+      open:true,
     }
   })
-  const rootFolders = ['rf1','rf2']
+  // const rootFolders = ['rf1','rf2']
+  const [contentUpdates,setContentUpdates] = useState({})
 
-  console.log("\n###BASE contentObj rf1 ",contentObj['rf1'])
+  console.log("\n###BASE contentUpdates",contentUpdates)
   const increment = useCallback(() => setCount(c => c + 1), [])
   
-  // const contentObj1 = useMemo(()=>{return {label:"my folder", open:true}},[])
-  // const contentObj2 = useMemo(()=>{return {label:label2, open:true}},[label2])
-  const contentObj1 = useMemo(()=>{return {label:contentObj['rf1'].label, open:true}},[contentObj['rf1'].label])
-  const contentObj2 = useMemo(()=>{return {label:labels[1], open:true}},[labels[1]])
+  const contentObj1 = useMemo(()=>{return (contentUpdates['rf1']) ? contentUpdates['rf1'] : contentObj['rf1']},[contentUpdates['rf1']]);
+  const contentObj2 = useMemo(()=>{return (contentUpdates['rf2']) ? contentUpdates['rf2'] : contentObj['rf2']},[contentUpdates['rf2']]);
 
   return <>
   {/* <button onClick={()=>setCount(count+1)}>{count}</button> */}
@@ -48,10 +52,16 @@ export default function temp() {
 
   {/* <button onClick={()=>setLabel2("Changed")}>Change Label</button> */}
   <button onClick={()=>{
-    setContentObj({...contentObj,"rf1":{"label":"my new label"}});
+    let rf1 = {...contentObj['rf1']};
+    if (contentUpdates['rf1']){rf1 = {...contentUpdates['rf1']}; }
+    rf1["label"] = `my new label (${count})`;
+    setContentUpdates({...contentUpdates,rf1});
     }}>Change Label1</button>
       <button onClick={()=>{
-    setContentObj({...contentObj,"rf2":{"label":"my new label2"}});
+    let rf2 = {...contentObj['rf2']};
+    if (contentUpdates['rf2']){rf2 = {...contentUpdates['rf2']}; }
+    rf2["label"] = `my new label (${count})`;
+    setContentUpdates({...contentUpdates,rf2});
     }}>Change Label2</button>
   <h1>Folders</h1>
   <Node contentObj={contentObj1} />
