@@ -47,7 +47,8 @@ export default function temp() {
   buildNodeArray(rootFolders);
   function buildNodeArray(folderArr,level=0,parent=""){
     for (let [i,id] of folderArr.entries()){
-      const contentObjI = useMemo(()=>{return (contentUpdates[id]) ? contentUpdates[id] : contentObj[id]},[contentUpdates[id]]);
+      // const contentObjI = useMemo(()=>{return (contentUpdates[id]) ? contentUpdates[id] : contentObj[id]},[contentUpdates[id]]);
+      const contentObjI = (contentUpdates[id]) ? contentUpdates[id] : contentObj[id];
       // console.log("contentObjI",`node${level}-${i}${parent}`,contentObjI)
       nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} />)
       buildNodeArray(contentObjI.contentIds,level+1,`${parent}-${i}`)
@@ -63,12 +64,33 @@ export default function temp() {
     rf1["label"] = `my new label (${count})`;
     setContentUpdates({...contentUpdates,rf1});
     }}>Change Label rf1</button>
+
       <button onClick={()=>{
     let f2 = {...contentObj['f2']};
     if (contentUpdates['f2']){f2 = {...contentUpdates['f2']}; }
     f2["label"] = `my new label (${count})`;
     setContentUpdates({...contentUpdates,f2});
     }}>Change Label f2</button>
+
+    <button onClick={()=>{
+    let rf2 = {...contentObj['rf2']};
+    if (contentUpdates['rf2']){rf2 = {...contentUpdates['rf2']}; }
+    rf2["contentIds"].push("f5");
+    let f5 = {
+      label:"folder five",
+      contentIds:[],
+      open:true,
+    }
+    setContentUpdates({...contentUpdates,rf2,f5});
+    }}>Add f5 to rf2</button>
+
+<button onClick={()=>{
+    let rf1 = {...contentObj['rf1']};
+    if (contentUpdates['rf1']){rf1 = {...contentUpdates['rf1']}; }
+     rf1["contentIds"].splice(rf1["contentIds"].indexOf('f3'),1);
+    setContentUpdates({...contentUpdates,rf1});
+    }}>Remove f3 from rf1</button>
+
   <h1>Folders</h1>
   {nodes}
   </>
