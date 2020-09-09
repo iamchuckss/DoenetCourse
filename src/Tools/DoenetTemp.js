@@ -37,35 +37,40 @@ export default function temp() {
       open:true,
     }
   })
-  // const rootFolders = ['rf1','rf2']
+  const rootFolders = ['rf1','rf2']
   const [contentUpdates,setContentUpdates] = useState({})
 
   console.log("\n###BASE contentUpdates",contentUpdates)
   const increment = useCallback(() => setCount(c => c + 1), [])
   
-  const contentObj1 = useMemo(()=>{return (contentUpdates['rf1']) ? contentUpdates['rf1'] : contentObj['rf1']},[contentUpdates['rf1']]);
-  const contentObj2 = useMemo(()=>{return (contentUpdates['rf2']) ? contentUpdates['rf2'] : contentObj['rf2']},[contentUpdates['rf2']]);
-
+  let nodes = [];
+  buildNodeArray(rootFolders);
+  function buildNodeArray(folderArr,level=0,parent=""){
+    for (let [i,id] of folderArr.entries()){
+      const contentObjI = useMemo(()=>{return (contentUpdates[id]) ? contentUpdates[id] : contentObj[id]},[contentUpdates[id]]);
+      // console.log("contentObjI",`node${level}-${i}${parent}`,contentObjI)
+      nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} />)
+      buildNodeArray(contentObjI.contentIds,level+1,`${parent}-${i}`)
+    }
+  }
+  
   return <>
-  {/* <button onClick={()=>setCount(count+1)}>{count}</button> */}
   <button onClick={increment}>{count}</button>
 
-  {/* <button onClick={()=>setLabel2("Changed")}>Change Label</button> */}
   <button onClick={()=>{
     let rf1 = {...contentObj['rf1']};
     if (contentUpdates['rf1']){rf1 = {...contentUpdates['rf1']}; }
     rf1["label"] = `my new label (${count})`;
     setContentUpdates({...contentUpdates,rf1});
-    }}>Change Label1</button>
+    }}>Change Label rf1</button>
       <button onClick={()=>{
-    let rf2 = {...contentObj['rf2']};
-    if (contentUpdates['rf2']){rf2 = {...contentUpdates['rf2']}; }
-    rf2["label"] = `my new label (${count})`;
-    setContentUpdates({...contentUpdates,rf2});
-    }}>Change Label2</button>
+    let f2 = {...contentObj['f2']};
+    if (contentUpdates['f2']){f2 = {...contentUpdates['f2']}; }
+    f2["label"] = `my new label (${count})`;
+    setContentUpdates({...contentUpdates,f2});
+    }}>Change Label f2</button>
   <h1>Folders</h1>
-  <Node contentObj={contentObj1} />
-  <Node contentObj={contentObj2} />
+  {nodes}
   </>
  
 }
@@ -73,7 +78,6 @@ export default function temp() {
 const Node = React.memo(function Node(props){
   console.log("Node", props)
   const indentPx = 10;
-  const level = 1;
-  return <div style={{marginLeft:`${level*indentPx}px`}} >{props.contentObj.label}</div>
+  return <div style={{marginLeft:`${props.level*indentPx}px`}} >{props.contentObj.label}</div>
 })
 
