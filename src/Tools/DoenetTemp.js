@@ -24,17 +24,17 @@ export default function temp() {
     'f2':{
       label:"folder two",
       contentIds:[],
-      open:true,
+      open:false,
     },
     'f3':{
       label:"folder three",
       contentIds:[],
-      open:true,
+      open:false,
     },
     'f4': {
       label:"folder four",
       contentIds:[],
-      open:true,
+      open:false,
     }
   })
   const rootFolders = ['rf1','rf2']
@@ -44,15 +44,36 @@ export default function temp() {
   const increment = useCallback(() => setCount(c => c + 1), [])
   
   let nodes = [];
+  const actions = useCallback(()=>{return {toggleFolder:toggleFolder}},[])
+
   buildNodeArray(rootFolders);
   function buildNodeArray(folderArr,level=0,parent=""){
     for (let [i,id] of folderArr.entries()){
-      // const contentObjI = useMemo(()=>{return (contentUpdates[id]) ? contentUpdates[id] : contentObj[id]},[contentUpdates[id]]);
       const contentObjI = (contentUpdates[id]) ? contentUpdates[id] : contentObj[id];
-      // console.log("contentObjI",`node${level}-${i}${parent}`,contentObjI)
-      nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} />)
-      buildNodeArray(contentObjI.contentIds,level+1,`${parent}-${i}`)
+      nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} nodeId={id} actions={actions}/>)
+      //If open then do this part
+      if (contentObjI.open){
+        buildNodeArray(contentObjI.contentIds,level+1,`${parent}-${i}`)
+      }
     }
+    if (folderArr.length === 0){
+      nodes.push(<Node key={`node${level}-0${parent}`} level={level} empty={true} />)
+    }
+  }
+
+
+  
+  function toggleFolder(folderId,nodeContentObj){
+    // console.log("----toggle folder----")
+    // console.log("contentObj[folderId]",contentObj[folderId])
+    // console.log("contentUpdates[folderId]",contentUpdates[folderId])
+    // console.log("nodeContentObj",nodeContentObj)
+
+    let folderObj = {...nodeContentObj};
+     folderObj["open"] = !folderObj["open"];
+     let newContentUpdates = {...contentUpdates};
+     newContentUpdates[folderId] = folderObj;
+    setContentUpdates(newContentUpdates);
   }
   
   return <>
@@ -91,15 +112,25 @@ export default function temp() {
     setContentUpdates({...contentUpdates,rf1});
     }}>Remove f3 from rf1</button>
 
+<button onClick={()=>{
+  let folderId = 'rf2'
+      let folderObj = {...contentObj[folderId]};
+    if (contentUpdates[folderId]){folderObj = {...contentUpdates[folderId]}; }
+    toggleFolder(folderId,folderObj);
+    }}>Toggle Open/Close rf2</button>
+
   <h1>Folders</h1>
   {nodes}
   </>
- 
 }
 
 const Node = React.memo(function Node(props){
   console.log("Node", props)
   const indentPx = 10;
-  return <div style={{marginLeft:`${props.level*indentPx}px`}} >{props.contentObj.label}</div>
+  if (props.empty){return <div style={{marginLeft:`${props.level*indentPx}px`}} >EMPTY</div>}
+  const toggleLabel = (props.contentObj.open)?"Close":"Open";
+  const toggle = <button onClick={()=>props.actions().toggleFolder(props.nodeId,props.contentObj)}>{toggleLabel}</button>
+  // const toggle = <button onClick={()=>props.actions.toggleFolder(props.nodeId)}>{toggleLabel}</button>
+  return <div style={{marginLeft:`${props.level*indentPx}px`}} >{toggle}{props.contentObj.label}</div>
 })
 
