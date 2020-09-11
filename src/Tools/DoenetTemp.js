@@ -39,6 +39,7 @@ export default function temp() {
   })
   const rootFolders = ['rf1','rf2']
   const [contentUpdates,setContentUpdates] = useState({})
+  const [allContentUpdates,setAllContentUpdates] = useState({})
 
   console.log("\n###BASE contentUpdates",contentUpdates)
   const increment = useCallback(() => setCount(c => c + 1), [])
@@ -46,11 +47,17 @@ export default function temp() {
   let nodes = [];
   const actions = useCallback(()=>{return {toggleFolder:toggleFolder}},[])
 
+  console.log("allContentUpdates",allContentUpdates)
+  if (Object.keys(contentUpdates).length > 0 ){
+    setAllContentUpdates({...allContentUpdates,...contentUpdates})
+    setContentUpdates({});
+  }
   buildNodeArray(rootFolders);
   function buildNodeArray(folderArr,level=0,parent=""){
     for (let [i,id] of folderArr.entries()){
-      const contentObjI = (contentUpdates[id]) ? contentUpdates[id] : contentObj[id];
+      const contentObjI = (allContentUpdates[id]) ? allContentUpdates[id] : contentObj[id];
       nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} nodeId={id} actions={actions}/>)
+      // nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} nodeId={id} actions={actions} contentUpdates={contentUpdates} />)
       //If open then do this part
       if (contentObjI.open){
         buildNodeArray(contentObjI.contentIds,level+1,`${parent}-${i}`)
@@ -131,6 +138,6 @@ const Node = React.memo(function Node(props){
   const toggleLabel = (props.contentObj.open)?"Close":"Open";
   const toggle = <button onClick={()=>props.actions().toggleFolder(props.nodeId,props.contentObj)}>{toggleLabel}</button>
   // const toggle = <button onClick={()=>props.actions.toggleFolder(props.nodeId)}>{toggleLabel}</button>
-  return <div style={{marginLeft:`${props.level*indentPx}px`}} >{toggle}{props.contentObj.label}</div>
+  return <div style={{marginLeft:`${props.level*indentPx}px`}} >{toggle}{props.contentObj.label} ({props.contentObj.contentIds.length})</div>
 })
 
