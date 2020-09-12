@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 
 //Simple folder contents
 export default function temp() {
+  const [count,setCount] = useState(0);
   const [contentObj, setContentObj] = useState(
     {'rf1':{
       label:"root folder",
@@ -39,11 +40,12 @@ export default function temp() {
   const [allContentUpdates,setAllContentUpdates] = useState({})
 
   console.log("\n###BASE contentUpdates",contentUpdates)
+  const increment = useCallback(() => setCount(c => c + 1), [])
   
   let nodes = [];
   const actions = useCallback(()=>{return {toggleFolder:toggleFolder}},[])
 
-  // console.log("allContentUpdates",allContentUpdates)
+  console.log("allContentUpdates",allContentUpdates)
   if (Object.keys(contentUpdates).length > 0 ){
     setAllContentUpdates({...allContentUpdates,...contentUpdates})
     setContentUpdates({});
@@ -67,6 +69,11 @@ export default function temp() {
 
   
   function toggleFolder(folderId,nodeContentObj){
+    // console.log("----toggle folder----")
+    // console.log("contentObj[folderId]",contentObj[folderId])
+    // console.log("contentUpdates[folderId]",contentUpdates[folderId])
+    // console.log("nodeContentObj",nodeContentObj)
+
     let folderObj = {...nodeContentObj};
      folderObj["open"] = !folderObj["open"];
      let newContentUpdates = {...contentUpdates};
@@ -75,6 +82,48 @@ export default function temp() {
   }
   
   return <>
+  <button onClick={increment}>{count}</button>
+
+  <button onClick={()=>{
+    let rf1 = {...contentObj['rf1']};
+    if (contentUpdates['rf1']){rf1 = {...contentUpdates['rf1']}; }
+    rf1["label"] = `my new label (${count})`;
+    setContentUpdates({...contentUpdates,rf1});
+    }}>Change Label rf1</button>
+
+      <button onClick={()=>{
+    let f2 = {...contentObj['f2']};
+    if (contentUpdates['f2']){f2 = {...contentUpdates['f2']}; }
+    f2["label"] = `my new label (${count})`;
+    setContentUpdates({...contentUpdates,f2});
+    }}>Change Label f2</button>
+
+    <button onClick={()=>{
+    let rf2 = {...contentObj['rf2']};
+    if (contentUpdates['rf2']){rf2 = {...contentUpdates['rf2']}; }
+    rf2["contentIds"].push("f5");
+    let f5 = {
+      label:"folder five",
+      contentIds:[],
+      open:true,
+    }
+    setContentUpdates({...contentUpdates,rf2,f5});
+    }}>Add f5 to rf2</button>
+
+<button onClick={()=>{
+    let rf1 = {...contentObj['rf1']};
+    if (contentUpdates['rf1']){rf1 = {...contentUpdates['rf1']}; }
+     rf1["contentIds"].splice(rf1["contentIds"].indexOf('f3'),1);
+    setContentUpdates({...contentUpdates,rf1});
+    }}>Remove f3 from rf1</button>
+
+<button onClick={()=>{
+  let folderId = 'rf2'
+      let folderObj = {...contentObj[folderId]};
+    if (contentUpdates[folderId]){folderObj = {...contentUpdates[folderId]}; }
+    toggleFolder(folderId,folderObj);
+    }}>Toggle Open/Close rf2</button>
+
   <h1>Folders</h1>
   {nodes}
   </>
@@ -82,24 +131,15 @@ export default function temp() {
 
 const Node = React.memo(function Node(props){
   console.log("Node", props)
-
-  const indentPx = 20;
-  if (props.empty){return <div style={{
-    width: "300px",
-    padding: "4px",
-    border: "1px solid black",
-    backgroundColor: "white",
-    margin: "2px"
-  }} ><div style={{textAlign: "center"}} >EMPTY</div></div>}
+  const indentPx = 16;
+  if (props.empty){return <div style={{marginLeft:`${props.level*indentPx}px`}} >EMPTY</div>}
   const toggleLabel = (props.contentObj.open)?"Close":"Open";
-  const toggle = <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); props.actions().toggleFolder(props.nodeId,props.contentObj)}}>{toggleLabel}</button>
-  let bgcolor = "#e2e2e2";
-  if (props.contentObj.isSelected){bgcolor = "#6de5ff";}
-  return <div onClick={()=>{console.log(`Clicked ${props.nodeId}`)}} style={{
+  const toggle = <button onClick={()=>props.actions().toggleFolder(props.nodeId,props.contentObj)}>{toggleLabel}</button>
+  return <div style={{
     width: "300px",
     padding: "4px",
-    border: "1px solid black",
-    backgroundColor: bgcolor,
+    border: "1px #fff",
+    backgroundColor: "#e2e2e2",
     margin: "2px"
   }} ><div style={{
     marginLeft:`${props.level*indentPx}px`
