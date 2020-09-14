@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback, useReducer } from 'react';
 
 //Simple folder contents
 export default function temp() {
-  console.log("#START OF TEMP")
   const [contentObj, setContentObj] = useState(
     {'rf1':{
       label:"root folder",
@@ -36,49 +35,41 @@ export default function temp() {
     }
   })
   const rootFolders = ['rf1','rf2']
-  const [transferPayload,setTransferPayload] = useState({})
+  const [contentUpdates,setContentUpdates] = useState({})
   const [allContentUpdates,setAllContentUpdates] = useState({})
 
-  //Payload????
-  //if(action.payload && action.payload.amt){amt = action.payload.amt}
   function reducer(state, action) {
-    console.log("REDUCER type:",action.type,"transferPayload:",action.payload)
-
     switch (action.type){
-      case 'TOGGLEFOLDER':
-        //Do toggle work here using state instead of allContentUpdates
-
-        return {...state,nodeUpdates:"updates here"};
-      
+      case 'BROWSING':
+        return {something: "no info"};
+      case 'SELECTING':
+        return {selectedItems: "array here"};
+      case 'DRAGING':
+        return {something: "array here"};
+      case 'DROP':
+        return {something: "location info"};
       default:
-        throw new Error(`Unhandled type in reducer ${action,type}`);
+        throw new Error("Didn't specify type in reducer");
     }
   }
 
-  const [state, dispatch] = useReducer(reducer, {allContentUpdates:{}});
+  const [state, dispatch] = useReducer(reducer, {selectedItems:[],something:""},()=>{console.log('called init')});
   console.log("STATE",state)
-  console.log("\n###BASE transferPayload",transferPayload)
+  console.log("\n###BASE contentUpdates",contentUpdates)
   
   let nodes = [];
   const actions = useCallback(()=>{return {toggleFolder:toggleFolder}},[])
 
-  // Dispatch Caller
-  if (Object.keys(transferPayload).length > 0 ){
-    // setAllContentUpdates({...allContentUpdates,...transferPayload})  //Delete
-    dispatch({type: transferPayload.action,payload:transferPayload.payload})
-    setTransferPayload({});
+  // console.log("allContentUpdates",allContentUpdates)
+  if (Object.keys(contentUpdates).length > 0 ){
+    setAllContentUpdates({...allContentUpdates,...contentUpdates})
+    setContentUpdates({});
   }
-  const transferDispatch =  useCallback((action,payload)=>{
-    console.log("!!!!!!!! transferDispatch action:",action,"payload:",payload)
-    setTransferPayload({action,payload})
-  },[]);
-
   buildNodeArray(rootFolders);
-
   function buildNodeArray(folderArr,level=0,parent=""){
     for (let [i,id] of folderArr.entries()){
       const contentObjI = (allContentUpdates[id]) ? allContentUpdates[id] : contentObj[id];
-      nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} nodeId={id} actions={actions} transferDispatch={transferDispatch}/>)
+      nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} nodeId={id} actions={actions}/>)
       // nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} nodeId={id} actions={actions} contentUpdates={contentUpdates} />)
       //If open then do this part
       if (contentObjI.open){
@@ -95,9 +86,9 @@ export default function temp() {
   function toggleFolder(folderId,nodeContentObj){
     let folderObj = {...nodeContentObj};
      folderObj["open"] = !folderObj["open"];
-     let newContentUpdates = {...transferPayload};
+     let newContentUpdates = {...contentUpdates};
      newContentUpdates[folderId] = folderObj;
-    setTransferPayload(newContentUpdates);
+    setContentUpdates(newContentUpdates);
   }
   
   return <>
@@ -118,12 +109,7 @@ const Node = React.memo(function Node(props){
     margin: "2px"
   }} ><div style={{textAlign: "center"}} >EMPTY</div></div>}
   const toggleLabel = (props.contentObj.open)?"Close":"Open";
-  const toggle = <button onClick={(e)=>{
-    e.preventDefault(); 
-    e.stopPropagation(); 
-    props.transferDispatch('TOGGLEFOLDER',{nodeId:props.nodeId,contentObj:props.contentObj})
-    // props.actions().toggleFolder(props.nodeId,props.contentObj);
-  }}>{toggleLabel}</button>
+  const toggle = <button onClick={(e)=>{e.preventDefault(); e.stopPropagation(); props.actions().toggleFolder(props.nodeId,props.contentObj)}}>{toggleLabel}</button>
   let bgcolor = "#e2e2e2";
   if (props.contentObj.isSelected){bgcolor = "#6de5ff";}
   return <div onClick={()=>{console.log(`Clicked ${props.nodeId}`)}} style={{
