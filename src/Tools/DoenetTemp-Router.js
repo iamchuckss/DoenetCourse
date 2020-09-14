@@ -5,14 +5,14 @@ import React, { useState } from 'react';
 // import { getCourses_CI, setSelected_CI, saveCourse_CI } from "../imports/courseInfo";
 // import DoenetBox from './DoenetBox';
 // import styled from 'styled-components';
-// import {
-//   HashRouter as Router,
-//   // BrowserRouter as Router,
-//   Switch,
-//   Route,
-//   Link,
-//   // useParams
-// } from "react-router-dom";
+import {
+  HashRouter as Router,
+  // BrowserRouter as Router,
+  Switch,
+  Route,
+  Link,
+  // useParams
+} from "react-router-dom";
 
 export default function temp() {
 

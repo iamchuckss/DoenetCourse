@@ -8,79 +8,78 @@ export default function temp() {
       label:"root folder",
       contentIds:['f1','f3'],
       open:true,
+      selected:false,
     },
     'rf2':{
       label:"root folder 2",
       contentIds:['f4'],
       open:true,
+      selected:false,
     },
     'f1':{
       label: "folder one",
       contentIds:['f2'],
       open:true,
+      selected:false,
     },
     'f2':{
       label:"folder two",
       contentIds:[],
       open:false,
+      selected:false,
     },
     'f3':{
       label:"folder three",
       contentIds:[],
       open:false,
+      selected:false,
     },
     'f4': {
       label:"folder four",
       contentIds:[],
       open:false,
+      selected:false,
     }
   })
   const rootFolders = ['rf1','rf2']
   const [transferPayload,setTransferPayload] = useState({})
-  const [allContentUpdates,setAllContentUpdates] = useState({})
 
-  //Payload????
-  //if(action.payload && action.payload.amt){amt = action.payload.amt}
   function reducer(state, action) {
     console.log("REDUCER type:",action.type,"transferPayload:",action.payload)
 
     switch (action.type){
-      case 'TOGGLEFOLDER':
-        //Do toggle work here using state instead of allContentUpdates
-
-        return {...state,nodeUpdates:"updates here"};
+      case 'TOGGLEFOLDER':{
+        let nodeObj = {...action.payload.contentObj}
+        nodeObj["open"] = !nodeObj["open"];
+        let allUpdates = {...state.allUpdates};
+        allUpdates[action.payload.nodeId] = nodeObj;        
+        return {...state,allUpdates};
+      }
+        
       
       default:
         throw new Error(`Unhandled type in reducer ${action,type}`);
     }
   }
 
-  const [state, dispatch] = useReducer(reducer, {allContentUpdates:{}});
-  console.log("STATE",state)
-  console.log("\n###BASE transferPayload",transferPayload)
-  
-  let nodes = [];
-  const actions = useCallback(()=>{return {toggleFolder:toggleFolder}},[])
+  const [state, dispatch] = useReducer(reducer, {allUpdates:{}});
+  console.log("\n###BASESTATE",state)
 
   // Dispatch Caller
   if (Object.keys(transferPayload).length > 0 ){
-    // setAllContentUpdates({...allContentUpdates,...transferPayload})  //Delete
     dispatch({type: transferPayload.action,payload:transferPayload.payload})
     setTransferPayload({});
   }
-  const transferDispatch =  useCallback((action,payload)=>{
-    console.log("!!!!!!!! transferDispatch action:",action,"payload:",payload)
-    setTransferPayload({action,payload})
-  },[]);
+  const transferDispatch =  useCallback((action,payload)=>{ setTransferPayload({action,payload}) },[]);
+  // const transferDispatch =  useCallback(setTransferPayload(action,payload) },[]);
 
+  let nodes = [];
   buildNodeArray(rootFolders);
 
   function buildNodeArray(folderArr,level=0,parent=""){
     for (let [i,id] of folderArr.entries()){
-      const contentObjI = (allContentUpdates[id]) ? allContentUpdates[id] : contentObj[id];
-      nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} nodeId={id} actions={actions} transferDispatch={transferDispatch}/>)
-      // nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} nodeId={id} actions={actions} contentUpdates={contentUpdates} />)
-      //If open then do this part
+      const contentObjI = (state.allUpdates[id]) ? state.allUpdates[id] : contentObj[id];
+      nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} nodeId={id} transferDispatch={transferDispatch}/>)
       if (contentObjI.open){
         buildNodeArray(contentObjI.contentIds,level+1,`${parent}-${i}`)
       }
@@ -90,15 +89,6 @@ export default function temp() {
     }
   }
 
-
-  
-  function toggleFolder(folderId,nodeContentObj){
-    let folderObj = {...nodeContentObj};
-     folderObj["open"] = !folderObj["open"];
-     let newContentUpdates = {...transferPayload};
-     newContentUpdates[folderId] = folderObj;
-    setTransferPayload(newContentUpdates);
-  }
   
   return <>
   <h1>Folders</h1>
