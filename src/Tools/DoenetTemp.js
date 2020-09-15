@@ -7,38 +7,38 @@ export default function temp() {
     {'rf1':{
       label:"root folder",
       contentIds:['f1','f3'],
-      open:true,
-      selected:false,
+      isOpen:true,
+      isSelected:false,
     },
     'rf2':{
       label:"root folder 2",
       contentIds:['f4'],
-      open:true,
-      selected:false,
+      isOpen:true,
+      isSelected:false,
     },
     'f1':{
       label: "folder one",
       contentIds:['f2'],
-      open:true,
-      selected:false,
+      isOpen:true,
+      isSelected:false,
     },
     'f2':{
       label:"folder two",
       contentIds:[],
-      open:false,
-      selected:false,
+      isOpen:false,
+      isSelected:false,
     },
     'f3':{
       label:"folder three",
       contentIds:[],
-      open:false,
-      selected:false,
+      isOpen:false,
+      isSelected:false,
     },
     'f4': {
       label:"folder four",
       contentIds:[],
-      open:false,
-      selected:false,
+      isOpen:false,
+      isSelected:false,
     }
   })
   const rootFolders = ['rf1','rf2']
@@ -50,19 +50,58 @@ export default function temp() {
     switch (action.type){
       case 'TOGGLEFOLDER':{
         let nodeObj = {...action.payload.contentObj}
-        nodeObj["open"] = !nodeObj["open"];
+        nodeObj["isOpen"] = !nodeObj["isOpen"];
         let allUpdates = {...state.allUpdates};
         allUpdates[action.payload.nodeId] = nodeObj;        
         return {...state,allUpdates};
       }
+      case 'CLICKITEM':{
+        const metakey = action.payload.metaKey;
+        const shiftKey = action.payload.shiftKey;
         
+        //Don't do anything if both shift and meta keys are pressed
+        if (metakey && shiftKey){ 
+          return {...state};
+        }
+
+        let nodeObj = {...action.payload.contentObj}
+        nodeObj["isSelected"] = !nodeObj["isSelected"];
+        let allUpdates = {...state.allUpdates};
+
+          
+        if (!metakey && !shiftKey){
+        //No shift or control so only select/deselect this node
+        for (let nodeId of state.allSelected){
+          let deselectedNode = {...allUpdates[nodeId]}
+          deselectedNode.isSelected = false; 
+          allUpdates[nodeId] = deselectedNode
+        }
+        state.allSelected = [action.payload.nodeId];
+        }else if (metakey && !shiftKey){
+          //Control so add just this one
+          state.allSelected.push(action.payload.nodeId)
+      }else if (!metakey && shiftKey){
+          console.log('ADD RANGE');
+          //Shift so add whole range
+          let lastNodeIdSelected = state.allSelected[state.allSelected.length-1];
+          if (lastNodeIdSelected !== undefined){
+            console.log('index of last selected')
+            // const indexOfLastNodeIdSelected = 
+            // console.log("indexOfLastNodeIdSelected",indexOfLastNodeIdSelected)
+          }
+        }
+          
+          
+        allUpdates[action.payload.nodeId] = nodeObj;        
+        return {...state,allUpdates};
+      }
       
       default:
         throw new Error(`Unhandled type in reducer ${action,type}`);
     }
   }
 
-  const [state, dispatch] = useReducer(reducer, {allUpdates:{}});
+  const [state, dispatch] = useReducer(reducer, {mode:"READY",allUpdates:{},allSelected:[]});
   console.log("\n###BASESTATE",state)
 
   // Dispatch Caller
@@ -80,7 +119,7 @@ export default function temp() {
     for (let [i,id] of folderArr.entries()){
       const contentObjI = (state.allUpdates[id]) ? state.allUpdates[id] : contentObj[id];
       nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} nodeId={id} transferDispatch={transferDispatch}/>)
-      if (contentObjI.open){
+      if (contentObjI.isOpen){
         buildNodeArray(contentObjI.contentIds,level+1,`${parent}-${i}`)
       }
     }
@@ -107,7 +146,7 @@ const Node = React.memo(function Node(props){
     backgroundColor: "white",
     margin: "2px"
   }} ><div style={{textAlign: "center"}} >EMPTY</div></div>}
-  const toggleLabel = (props.contentObj.open)?"Close":"Open";
+  const toggleLabel = (props.contentObj.isOpen)?"Close":"Open";
   const toggle = <button onClick={(e)=>{
     e.preventDefault(); 
     e.stopPropagation(); 
@@ -116,7 +155,9 @@ const Node = React.memo(function Node(props){
   }}>{toggleLabel}</button>
   let bgcolor = "#e2e2e2";
   if (props.contentObj.isSelected){bgcolor = "#6de5ff";}
-  return <div onClick={()=>{console.log(`Clicked ${props.nodeId}`)}} style={{
+  return <div onClick={(e)=>{
+    props.transferDispatch('CLICKITEM',{nodeId:props.nodeId,contentObj:props.contentObj,shiftKey:e.shiftKey,metaKey:e.metaKey})
+  }} style={{
     width: "300px",
     padding: "4px",
     border: "1px solid black",
