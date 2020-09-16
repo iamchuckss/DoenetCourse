@@ -87,9 +87,14 @@ export default function browser() {
           //Shift so add whole range
           let lastNodeIdSelected = state.allSelected[state.allSelected.length - 1];
           if (lastNodeIdSelected !== undefined) {
-            console.log('index of last selected',lastNodeIdSelected)
-            //Build array of nodeids
-            let nodeIdsArray = [];
+            //Find range of nodes and turn selection on for those that are off
+            //Build array of nodeids if length is 0
+            let nodeIds = buildNodeIdArray({folderArr:rootFolders,allUpdates:state.allUpdates});
+            let indexOfLastNodeId = nodeIds.indexOf(lastNodeIdSelected);
+            let indexOfCurrentNodeId = nodeIds.indexOf(action.payload.nodeId);
+            let rangeArr = nodeIds.slice(Math.min(indexOfLastNodeId,indexOfCurrentNodeId), Math.max(indexOfLastNodeId,indexOfCurrentNodeId)+1);
+            console.log("rangeArr",rangeArr)
+            //store nodeIds in state and set to empty array if it changes
 
             // const indexOfLastNodeIdSelected = 
             // console.log("indexOfLastNodeIdSelected",indexOfLastNodeIdSelected)
@@ -124,16 +129,12 @@ export default function browser() {
   // const transferDispatch =  useCallback(setTransferPayload(action,payload) },[]);
 
   let nodes = [];
-  let nodeIds = buildNodeIdArray(rootFolders);
-  console.log("final nodeIds",nodeIds);
-  function buildNodeIdArray(folderArr,nodeIds=[]){
-    for (let [i, id] of folderArr.entries()) {
+  
+  function buildNodeIdArray({folderArr=[],nodeIds=[],allUpdates={}}){
+    for (let id of folderArr) {
       nodeIds.push(id);
-      const contentObjI = (state.allUpdates[id]) ? state.allUpdates[id] : contentObj[id];
-      if (contentObjI.isOpen) {
-        buildNodeIdArray(contentObjI.contentIds,nodeIds);
-      }
-
+      const contentObjI = (allUpdates[id]) ? allUpdates[id] : contentObj[id];
+      if (contentObjI.isOpen) { buildNodeIdArray({folderArr:contentObjI.contentIds,nodeIds,allUpdates}); }
     }
     return nodeIds;
   }
