@@ -87,7 +87,10 @@ export default function browser() {
           //Shift so add whole range
           let lastNodeIdSelected = state.allSelected[state.allSelected.length - 1];
           if (lastNodeIdSelected !== undefined) {
-            console.log('index of last selected')
+            console.log('index of last selected',lastNodeIdSelected)
+            //Build array of nodeids
+            let nodeIdsArray = [];
+
             // const indexOfLastNodeIdSelected = 
             // console.log("indexOfLastNodeIdSelected",indexOfLastNodeIdSelected)
           }
@@ -121,12 +124,23 @@ export default function browser() {
   // const transferDispatch =  useCallback(setTransferPayload(action,payload) },[]);
 
   let nodes = [];
-  let collectOpenNodeIds = [];
+  let nodeIds = buildNodeIdArray(rootFolders);
+  console.log("final nodeIds",nodeIds);
+  function buildNodeIdArray(folderArr,nodeIds=[]){
+    for (let [i, id] of folderArr.entries()) {
+      nodeIds.push(id);
+      const contentObjI = (state.allUpdates[id]) ? state.allUpdates[id] : contentObj[id];
+      if (contentObjI.isOpen) {
+        buildNodeIdArray(contentObjI.contentIds,nodeIds);
+      }
+
+    }
+    return nodeIds;
+  }
   buildNodeArray(rootFolders);
 
   function buildNodeArray(folderArr, level = 0, parent = "") {
     for (let [i, id] of folderArr.entries()) {
-      collectOpenNodeIds.push(id);
       const contentObjI = (state.allUpdates[id]) ? state.allUpdates[id] : contentObj[id];
       nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} nodeId={id} transferDispatch={transferDispatch} />)
       if (contentObjI.isOpen) {
@@ -137,10 +151,7 @@ export default function browser() {
       nodes.push(<Node key={`node${level}-0${parent}`} level={level} empty={true} />)
     }
   }
-  if (collectOpenNodeIds.length !== openNodeIds.length) {
-    setOpenNodeIds(collectOpenNodeIds);
-  }
-  console.log("openNodeIds", openNodeIds)
+
 
 
   return <>
