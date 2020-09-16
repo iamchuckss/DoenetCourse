@@ -6,6 +6,7 @@ export default function browser() {
   console.log("#START OF BROWSER")
   const [loadedNodeObj, setLoadedNodeObj] = useState(
     {
+      'root': {childNodeIds:['rf1', 'rf2']},
       'rf1': {
         label: "root folder",
         childNodeIds: ['f1', 'f3'],
@@ -43,9 +44,8 @@ export default function browser() {
         appearance: "default",
       }
     })
-  const rootFolders = ['rf1', 'rf2']
+ 
   const [transferPayload, setTransferPayload] = useState({})
-  const [openNodeIds, setOpenNodeIds] = useState([])
 
   function reducer(state, action) {
     console.log("REDUCER type:", action.type, "transferPayload:", action.payload)
@@ -112,7 +112,8 @@ export default function browser() {
             //Build array of nodeids if length is 0
             //Only build node ids array if we need it
             if (nodeIdsArr.length === 0){
-              nodeIdsArr = buildNodeIdArray({folderArr:rootFolders,allUpdates:state.allUpdates});
+              const latestRootFolders = ((allUpdates['root']) ? allUpdates['root'] : loadedNodeObj['root']).childNodeIds;
+              nodeIdsArr = buildNodeIdArray({folderArr:latestRootFolders,allUpdates:state.allUpdates});
             }
             let indexOfLastNodeId = nodeIdsArr.indexOf(lastNodeIdSelected);
             let indexOfCurrentNodeId = nodeIdsArr.indexOf(action.payload.nodeId);
@@ -127,7 +128,6 @@ export default function browser() {
               }
               
             }
-            //TODO: set nodeIdsArr to empty array if it changes
 
           }
         }
@@ -137,11 +137,23 @@ export default function browser() {
         if (state.allSelected.length === 0){ mode = "READY"}
         return { ...state, allUpdates,nodeIdsArr,mode };
       }
-      case 'ADDITEMS': {
+      case 'ADDNODES': {
+        let newAllUpdates = {...state.allUpdates}
+        const nodeReceiverId = action.payload.nodeReceiverId;
+        let newNodeReceiver = {...(newAllUpdates[nodeReceiverId]) ? newAllUpdates[nodeReceiverId] : loadedNodeObj[nodeReceiverId]};
+        for (let nodeObj of action.payload.nodes) {
+          let nodeId = Object.keys(nodeObj)[0];
+          newNodeReceiver.childNodeIds.push(nodeId)
+          newAllUpdates[nodeId] = {...nodeObj[nodeId]};
+        }
+        newAllUpdates[nodeReceiverId] = newNodeReceiver;
+        console.log("++++++++++++add nodes newAllUpdates",newAllUpdates)
+
         let nodeIdsArr = [];
-        return { ...state,nodeIdsArr }
+        // return { ...state,nodeIdsArr}
+        return { ...state,nodeIdsArr,allUpdates:newAllUpdates}
       }
-      case 'DELETEITEMS': {
+      case 'DELETENODES': {
         let nodeIdsArr = [];
         return { ...state,nodeIdsArr }
       }
@@ -159,8 +171,7 @@ export default function browser() {
     dispatch({ type: transferPayload.action, payload: transferPayload.payload })
     setTransferPayload({});
   }
-  const transferDispatch = useCallback((action, payload) => { setTransferPayload({ action, payload }) }, []);
-  // const transferDispatch =  useCallback(setTransferPayload(action,payload) },[]);
+  const transferDispatch = useCallback((action, payload) => { console.log("called!"); setTransferPayload({ action, payload }) }, []);
 
   let nodes = [];
   
@@ -172,8 +183,8 @@ export default function browser() {
     }
     return nodeIds;
   }
-
-  buildNodeArray(rootFolders);
+  const latestRootFolders = ((state.allUpdates['root']) ? state.allUpdates['root'] : loadedNodeObj['root']).childNodeIds;
+  buildNodeArray(latestRootFolders);
 
   function buildNodeArray(folderArr, level = 0, parent = "") {
     for (let [i, id] of folderArr.entries()) {
@@ -191,6 +202,13 @@ export default function browser() {
 
 
   return <>
+    <button onClick={()=>{dispatch({ type: "ADDNODES",payload:{nodeReceiverId:'root',nodes:[{'rf3': {
+        label: "root folder 3",
+        childNodeIds: [],
+        isOpen: false,
+        appearance: "default",
+        
+      }}]}})}}>Add Node</button>
     <h1>Folders</h1>
     {nodes}
   </>
@@ -199,6 +217,10 @@ export default function browser() {
 //appearance 'default','selected','inactive','dropperview'
 const Node = React.memo(function Node(props) {
   console.log("Node", props)
+  let numChildren = 0;
+  if (props.nodeObj.childNodeIds && props.nodeObj.childNodeIds.length){
+    numChildren = props.nodeObj.childNodeIds.length;
+  }
 
   const indentPx = 20;
   if (props.empty) {
@@ -229,6 +251,6 @@ const Node = React.memo(function Node(props) {
     margin: "2px"
   }} ><div className="noselect" style={{
     marginLeft: `${props.level * indentPx}px`
-  }}>{toggle} [icon] {props.nodeObj.label} ({props.nodeObj.childNodeIds.length})</div></div>
+  }}>{toggle} [icon] {props.nodeObj.label} ({numChildren})</div></div>
 })
 
