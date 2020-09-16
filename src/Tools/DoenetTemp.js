@@ -55,7 +55,8 @@ export default function browser() {
         nodeObj["isOpen"] = !nodeObj["isOpen"];
         let allUpdates = { ...state.allUpdates };
         allUpdates[action.payload.nodeId] = nodeObj;
-        return { ...state, allUpdates };
+        let nodeIdsArr = [];
+        return { ...state, allUpdates,nodeIdsArr };
       }
       case 'CLICKITEM': {
         const metakey = action.payload.metaKey;
@@ -70,6 +71,7 @@ export default function browser() {
         nodeObj["isSelected"] = !nodeObj["isSelected"];
         let allUpdates = { ...state.allUpdates };
 
+        let nodeIdsArr = state.nodeIdsArr;
 
         if (!metakey && !shiftKey) {
           //No shift or control so only select/deselect this node
@@ -83,33 +85,44 @@ export default function browser() {
           //Control so add just this one
           state.allSelected.push(action.payload.nodeId)
         } else if (!metakey && shiftKey) {
-          console.log('ADD RANGE');
           //Shift so add whole range
           let lastNodeIdSelected = state.allSelected[state.allSelected.length - 1];
           if (lastNodeIdSelected !== undefined) {
             //Find range of nodes and turn selection on for those that are off
             //Build array of nodeids if length is 0
-            let nodeIds = buildNodeIdArray({folderArr:rootFolders,allUpdates:state.allUpdates});
-            let indexOfLastNodeId = nodeIds.indexOf(lastNodeIdSelected);
-            let indexOfCurrentNodeId = nodeIds.indexOf(action.payload.nodeId);
-            let rangeArr = nodeIds.slice(Math.min(indexOfLastNodeId,indexOfCurrentNodeId), Math.max(indexOfLastNodeId,indexOfCurrentNodeId)+1);
-            console.log("rangeArr",rangeArr)
-            //store nodeIds in state and set to empty array if it changes
+            //Only build node ids array if we need it
+            if (nodeIdsArr.length === 0){
+              nodeIdsArr = buildNodeIdArray({folderArr:rootFolders,allUpdates:state.allUpdates});
+            }
+            let indexOfLastNodeId = nodeIdsArr.indexOf(lastNodeIdSelected);
+            let indexOfCurrentNodeId = nodeIdsArr.indexOf(action.payload.nodeId);
+            let rangeArr = nodeIdsArr.slice(Math.min(indexOfLastNodeId,indexOfCurrentNodeId), Math.max(indexOfLastNodeId,indexOfCurrentNodeId)+1);
+            for (let nodeId of rangeArr){
+              let nodeObj = (allUpdates[nodeId]) ? allUpdates[nodeId] : contentObj[nodeId];
+              if (!nodeObj.isSelected){
+                let newNodeObj = { ...nodeObj }
+                newNodeObj["isSelected"] = true;
+                state.allSelected.push(nodeId);
+                allUpdates[nodeId] = newNodeObj;
+              }
+              
+            }
+            //TODO: set nodeIdsArr to empty array if it changes
 
-            // const indexOfLastNodeIdSelected = 
-            // console.log("indexOfLastNodeIdSelected",indexOfLastNodeIdSelected)
           }
         }
 
 
         allUpdates[action.payload.nodeId] = nodeObj;
-        return { ...state, allUpdates };
+        return { ...state, allUpdates,nodeIdsArr };
       }
       case 'ADDITEMS': {
-        return { ...state }
+        let nodeIdsArr = [];
+        return { ...state,nodeIdsArr }
       }
       case 'DELETEITEMS': {
-        return { ...state }
+        let nodeIdsArr = [];
+        return { ...state,nodeIdsArr }
       }
 
       default:
@@ -117,7 +130,7 @@ export default function browser() {
     }
   }
 
-  const [state, dispatch] = useReducer(reducer, { mode: "READY", allUpdates: {}, allSelected: [] });
+  const [state, dispatch] = useReducer(reducer, { mode: "READY", allUpdates: {}, allSelected: [], nodeIdsArr: [] });
   console.log("\n###BASESTATE", state)
 
   // Dispatch Caller
@@ -138,6 +151,7 @@ export default function browser() {
     }
     return nodeIds;
   }
+
   buildNodeArray(rootFolders);
 
   function buildNodeArray(folderArr, level = 0, parent = "") {
@@ -161,6 +175,7 @@ export default function browser() {
   </>
 }
 
+//appearance 'default','selected','inactive','droppreview'
 const Node = React.memo(function Node(props) {
   console.log("Node", props)
 
