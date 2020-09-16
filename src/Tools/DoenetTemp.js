@@ -61,6 +61,8 @@ export default function browser() {
       case 'CLICKITEM': {
         const metakey = action.payload.metaKey;
         const shiftKey = action.payload.shiftKey;
+        let mode = state.mode;
+        mode = "SELECT";
 
         //Don't do anything if both shift and meta keys are pressed
         if (metakey && shiftKey) {
@@ -68,26 +70,38 @@ export default function browser() {
         }
 
         let nodeObj = { ...action.payload.contentObj }
-        nodeObj["isSelected"] = !nodeObj["isSelected"];
         let allUpdates = { ...state.allUpdates };
 
         let nodeIdsArr = state.nodeIdsArr;
 
         if (!metakey && !shiftKey) {
           //No shift or control so only select/deselect this node
+          nodeObj["isSelected"] = !nodeObj["isSelected"];
           for (let nodeId of state.allSelected) {
             let deselectedNode = { ...allUpdates[nodeId] }
             deselectedNode.isSelected = false;
             allUpdates[nodeId] = deselectedNode
           }
-          state.allSelected = [action.payload.nodeId];
+          if (nodeObj["isSelected"]){
+            state.allSelected = [action.payload.nodeId];
+          }else{
+            state.allSelected = [];
+          }
         } else if (metakey && !shiftKey) {
           //Control so add just this one
-          state.allSelected.push(action.payload.nodeId)
+          nodeObj["isSelected"] = !nodeObj["isSelected"];
+          if (nodeObj["isSelected"]){
+            state.allSelected.push(action.payload.nodeId)
+          }else{
+            //remove nodeId
+            state.allSelected.splice(state.allSelected.indexOf(action.payload.nodeId),1)
+          }
         } else if (!metakey && shiftKey) {
           //Shift so add whole range
           let lastNodeIdSelected = state.allSelected[state.allSelected.length - 1];
           if (lastNodeIdSelected !== undefined) {
+          nodeObj["isSelected"] = !nodeObj["isSelected"];
+
             //Find range of nodes and turn selection on for those that are off
             //Build array of nodeids if length is 0
             //Only build node ids array if we need it
@@ -96,7 +110,7 @@ export default function browser() {
             }
             let indexOfLastNodeId = nodeIdsArr.indexOf(lastNodeIdSelected);
             let indexOfCurrentNodeId = nodeIdsArr.indexOf(action.payload.nodeId);
-            let rangeArr = nodeIdsArr.slice(Math.min(indexOfLastNodeId,indexOfCurrentNodeId), Math.max(indexOfLastNodeId,indexOfCurrentNodeId)+1);
+            let rangeArr = nodeIdsArr.slice(Math.min(indexOfLastNodeId,indexOfCurrentNodeId), Math.max(indexOfLastNodeId,indexOfCurrentNodeId));
             for (let nodeId of rangeArr){
               let nodeObj = (allUpdates[nodeId]) ? allUpdates[nodeId] : contentObj[nodeId];
               if (!nodeObj.isSelected){
@@ -114,7 +128,8 @@ export default function browser() {
 
 
         allUpdates[action.payload.nodeId] = nodeObj;
-        return { ...state, allUpdates,nodeIdsArr };
+        if (state.allSelected.length === 0){ mode = "READY"}
+        return { ...state, allUpdates,nodeIdsArr,mode };
       }
       case 'ADDITEMS': {
         let nodeIdsArr = [];
