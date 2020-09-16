@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useReducer } from 'react';
+import './util.css';
 
 //Simple folder contents
 export default function browser() {
@@ -207,7 +208,7 @@ const Node = React.memo(function Node(props) {
       border: "1px solid black",
       backgroundColor: "white",
       margin: "2px"
-    }} ><div style={{ textAlign: "center" }} >EMPTY</div></div>
+    }} ><div className="noselect" style={{ textAlign: "center" }} >EMPTY</div></div>
   }
   const toggleLabel = (props.nodeObj.isOpen) ? "Close" : "Open";
   const toggle = <button onClick={(e) => {
@@ -226,7 +227,7 @@ const Node = React.memo(function Node(props) {
     border: "1px solid black",
     backgroundColor: bgcolor,
     margin: "2px"
-  }} ><div style={{
+  }} ><div className="noselect" style={{
     marginLeft: `${props.level * indentPx}px`
   }}>{toggle} [icon] {props.nodeObj.label} ({props.nodeObj.childNodeIds.length})</div></div>
 })
