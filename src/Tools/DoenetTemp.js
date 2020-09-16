@@ -3,41 +3,41 @@ import React, { useState, useMemo, useCallback, useReducer } from 'react';
 //Simple folder contents
 export default function browser() {
   console.log("#START OF BROWSER")
-  const [contentObj, setContentObj] = useState(
+  const [loadedNodeObj, setLoadedNodeObj] = useState(
     {
       'rf1': {
         label: "root folder",
-        contentIds: ['f1', 'f3'],
+        childNodeIds: ['f1', 'f3'],
         isOpen: true,
         isSelected: false,
       },
       'rf2': {
         label: "root folder 2",
-        contentIds: ['f4'],
+        childNodeIds: ['f4'],
         isOpen: true,
         isSelected: false,
       },
       'f1': {
         label: "folder one",
-        contentIds: ['f2'],
+        childNodeIds: ['f2'],
         isOpen: true,
         isSelected: false,
       },
       'f2': {
         label: "folder two",
-        contentIds: [],
+        childNodeIds: [],
         isOpen: false,
         isSelected: false,
       },
       'f3': {
         label: "folder three",
-        contentIds: [],
+        childNodeIds: [],
         isOpen: false,
         isSelected: false,
       },
       'f4': {
         label: "folder four",
-        contentIds: [],
+        childNodeIds: [],
         isOpen: false,
         isSelected: false,
       }
@@ -51,7 +51,7 @@ export default function browser() {
 
     switch (action.type) {
       case 'TOGGLEFOLDER': {
-        let nodeObj = { ...action.payload.contentObj }
+        let nodeObj = { ...action.payload.nodeObj }
         nodeObj["isOpen"] = !nodeObj["isOpen"];
         let allUpdates = { ...state.allUpdates };
         allUpdates[action.payload.nodeId] = nodeObj;
@@ -69,7 +69,7 @@ export default function browser() {
           return { ...state };
         }
 
-        let nodeObj = { ...action.payload.contentObj }
+        let nodeObj = { ...action.payload.nodeObj }
         let allUpdates = { ...state.allUpdates };
 
         let nodeIdsArr = state.nodeIdsArr;
@@ -100,7 +100,7 @@ export default function browser() {
           //Shift so add whole range
           let lastNodeIdSelected = state.allSelected[state.allSelected.length - 1];
           if (lastNodeIdSelected !== undefined) {
-          nodeObj["isSelected"] = !nodeObj["isSelected"];
+          nodeObj["isSelected"] = true;
 
             //Find range of nodes and turn selection on for those that are off
             //Build array of nodeids if length is 0
@@ -112,7 +112,7 @@ export default function browser() {
             let indexOfCurrentNodeId = nodeIdsArr.indexOf(action.payload.nodeId);
             let rangeArr = nodeIdsArr.slice(Math.min(indexOfLastNodeId,indexOfCurrentNodeId), Math.max(indexOfLastNodeId,indexOfCurrentNodeId));
             for (let nodeId of rangeArr){
-              let nodeObj = (allUpdates[nodeId]) ? allUpdates[nodeId] : contentObj[nodeId];
+              let nodeObj = (allUpdates[nodeId]) ? allUpdates[nodeId] : loadedNodeObj[nodeId];
               if (!nodeObj.isSelected){
                 let newNodeObj = { ...nodeObj }
                 newNodeObj["isSelected"] = true;
@@ -161,8 +161,8 @@ export default function browser() {
   function buildNodeIdArray({folderArr=[],nodeIds=[],allUpdates={}}){
     for (let id of folderArr) {
       nodeIds.push(id);
-      const contentObjI = (allUpdates[id]) ? allUpdates[id] : contentObj[id];
-      if (contentObjI.isOpen) { buildNodeIdArray({folderArr:contentObjI.contentIds,nodeIds,allUpdates}); }
+      const nodeObjI = (allUpdates[id]) ? allUpdates[id] : loadedNodeObj[id];
+      if (nodeObjI.isOpen) { buildNodeIdArray({folderArr:nodeObjI.childNodeIds,nodeIds,allUpdates}); }
     }
     return nodeIds;
   }
@@ -171,10 +171,10 @@ export default function browser() {
 
   function buildNodeArray(folderArr, level = 0, parent = "") {
     for (let [i, id] of folderArr.entries()) {
-      const contentObjI = (state.allUpdates[id]) ? state.allUpdates[id] : contentObj[id];
-      nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} contentObj={contentObjI} nodeId={id} transferDispatch={transferDispatch} />)
-      if (contentObjI.isOpen) {
-        buildNodeArray(contentObjI.contentIds, level + 1, `${parent}-${i}`)
+      const nodeObjI = (state.allUpdates[id]) ? state.allUpdates[id] : loadedNodeObj[id];
+      nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} nodeObj={nodeObjI} nodeId={id} transferDispatch={transferDispatch} />)
+      if (nodeObjI.isOpen) {
+        buildNodeArray(nodeObjI.childNodeIds, level + 1, `${parent}-${i}`)
       }
     }
     if (folderArr.length === 0) {
@@ -204,17 +204,17 @@ const Node = React.memo(function Node(props) {
       margin: "2px"
     }} ><div style={{ textAlign: "center" }} >EMPTY</div></div>
   }
-  const toggleLabel = (props.contentObj.isOpen) ? "Close" : "Open";
+  const toggleLabel = (props.nodeObj.isOpen) ? "Close" : "Open";
   const toggle = <button onClick={(e) => {
     e.preventDefault();
     e.stopPropagation();
-    props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, contentObj: props.contentObj })
-    // props.actions().toggleFolder(props.nodeId,props.contentObj);
+    props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj })
+    // props.actions().toggleFolder(props.nodeId,props.nodeObj);
   }}>{toggleLabel}</button>
   let bgcolor = "#e2e2e2";
-  if (props.contentObj.isSelected) { bgcolor = "#6de5ff"; }
+  if (props.nodeObj.isSelected) { bgcolor = "#6de5ff"; }
   return <div onClick={(e) => {
-    props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, contentObj: props.contentObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
+    props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
   }} style={{
     width: "300px",
     padding: "4px",
@@ -223,6 +223,6 @@ const Node = React.memo(function Node(props) {
     margin: "2px"
   }} ><div style={{
     marginLeft: `${props.level * indentPx}px`
-  }}>{toggle} [icon] {props.contentObj.label} ({props.contentObj.contentIds.length})</div></div>
+  }}>{toggle} [icon] {props.nodeObj.label} ({props.nodeObj.childNodeIds.length})</div></div>
 })
 
