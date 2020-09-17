@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useCallback, useReducer } from 'react';
 import './util.css';
+import nanoid from 'nanoid';
+
 
 //Simple folder contents
 export default function browser() {
@@ -79,13 +81,19 @@ export default function browser() {
 
 
   return <>
-    <button onClick={()=>{dispatch({ type: "ADDNODES",payload:{loadedNodeObj,nodeReceiverId:'root',nodes:[{'rf3': {
-        label: "root folder 3",
+  
+    <button onClick={()=>{
+      let node = {
+        label: "Untitled folder",
         childNodeIds: [],
         isOpen: false,
         appearance: "default",
-        
-      }}]}})}}>Add Node</button>
+      }
+      let nodeObj = {};
+      let Id = nanoid();
+      nodeObj[Id] = node;
+    dispatch({ type: "ADDNODES",payload:{loadedNodeObj,nodes:[nodeObj]}})
+      }}>Add Folder</button>
     <h1>Folders</h1>
     {nodes}
   </>
@@ -192,7 +200,8 @@ function reducer(state, action) {
     }
     case 'ADDNODES': {
       let newAllUpdates = {...state.allUpdates}
-      const nodeReceiverId = action.payload.nodeReceiverId;
+      let nodeReceiverId = state.allSelected[state.allSelected.length - 1];
+        if (nodeReceiverId === undefined) { nodeReceiverId = 'root'; } //No selections add to root
       let newNodeReceiver = {...(newAllUpdates[nodeReceiverId]) ? newAllUpdates[nodeReceiverId] : loadedNodeObj[nodeReceiverId]};
       for (let nodeObj of action.payload.nodes) {
         let nodeId = Object.keys(nodeObj)[0];
