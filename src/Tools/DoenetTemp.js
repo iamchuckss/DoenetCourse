@@ -42,7 +42,7 @@ export default function browser() {
       'f4': {
         label: "folder four",
         childNodeIds: [],
-        isOpen: false,
+        isOpen: false, 
         appearance: "default",
       }
     })
@@ -76,6 +76,7 @@ export default function browser() {
     if (folderArr.length === 0) {
       nodes.push(<Node key={`node${level}-0${parent}`} level={level} empty={true} />)
     }
+    
   }
 
 
@@ -229,7 +230,7 @@ function reducer(state, action) {
 const Node = React.memo(function Node(props) {
   console.log("Node", props)
   let numChildren = 0;
-  if (props.nodeObj.childNodeIds && props.nodeObj.childNodeIds.length){
+  if (props.nodeObj && props.nodeObj.childNodeIds && props.nodeObj.childNodeIds.length){
     numChildren = props.nodeObj.childNodeIds.length;
   }
 
