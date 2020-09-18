@@ -227,11 +227,13 @@ function reducer(state, action) {
       let nodeObj = { ...action.payload.nodeObj }
       let nodeParentId = nodeObj.parentId;
       let newNodeParent = {...(newAllUpdates[nodeParentId]) ? newAllUpdates[nodeParentId] : loadedNodeObj[nodeParentId]};
+      console.log(">>>HERE")
       let newChildNodeIds = [...newNodeParent.childNodeIds];
-      newChildNodeIds.splice(newChildNodeIds.indexOf(action.payload.nodeId),1)
-      newNodeParent.childNodeIds = newChildNodeIds;
-      newAllUpdates[nodeParentId] = newNodeParent;
-      let nodeIdsArr = [];
+      console.log(">>>newChildNodeIds",newChildNodeIds)
+      // newChildNodeIds.splice(newChildNodeIds.indexOf(action.payload.nodeId),1)
+      // newNodeParent.childNodeIds = newChildNodeIds;
+      // newAllUpdates[nodeParentId] = newNodeParent;
+      // let nodeIdsArr = [];
       return { ...state,nodeIdsArr,allUpdates:newAllUpdates }
     }
 
