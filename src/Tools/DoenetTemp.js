@@ -14,36 +14,42 @@ export default function browser() {
         childNodeIds: ['f1', 'f3'],
         isOpen: true,
         appearance: "default",
+        parentId: "root",
       },
       'rf2': {
         label: "root folder 2",
         childNodeIds: ['f4'],
         isOpen: true,
         appearance: "default",
+        parentId: "root",
       },
       'f1': {
         label: "folder one",
         childNodeIds: ['f2'],
         isOpen: true,
         appearance: "default",
+        parentId: "rf1",
       },
       'f2': {
         label: "folder two",
         childNodeIds: [],
         isOpen: false,
         appearance: "default",
+        parentId: "f1",
       },
       'f3': {
         label: "folder three",
         childNodeIds: [],
         isOpen: false,
         appearance: "default",
+        parentId: "rf1",
       },
       'f4': {
         label: "folder four",
         childNodeIds: [],
         isOpen: false, 
         appearance: "default",
+        parentId: "rf2",
       }
     })
  
@@ -68,10 +74,10 @@ export default function browser() {
   function buildNodeArray(folderArr, level = 0, parent = "") {
     for (let [i, id] of folderArr.entries()) {
       const nodeObjI = (state.allUpdates[id]) ? state.allUpdates[id] : loadedNodeObj[id];
-      nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} nodeObj={nodeObjI} nodeId={id} transferDispatch={transferDispatch} />)
-      if (nodeObjI.isOpen) {
-        buildNodeArray(nodeObjI.childNodeIds, level + 1, `${parent}-${i}`)
-      }
+        nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} nodeObj={nodeObjI} nodeId={id} transferDispatch={transferDispatch} />)
+        if (nodeObjI.isOpen) {
+          buildNodeArray(nodeObjI.childNodeIds, level + 1, `${parent}-${i}`)
+        }
     }
     if (folderArr.length === 0) {
       nodes.push(<Node key={`node${level}-0${parent}`} level={level} empty={true} />)
@@ -102,9 +108,9 @@ export default function browser() {
 
 function buildNodeIdArray({loadedNodeObj={},folderArr=[],nodeIds=[],allUpdates={}}){
   for (let id of folderArr) {
-    nodeIds.push(id);
     const nodeObjI = (allUpdates[id]) ? allUpdates[id] : loadedNodeObj[id];
-    if (nodeObjI.isOpen) { buildNodeIdArray({loadedNodeObj,folderArr:nodeObjI.childNodeIds,nodeIds,allUpdates}); }
+      nodeIds.push(id);
+      if (nodeObjI.isOpen) { buildNodeIdArray({loadedNodeObj,folderArr:nodeObjI.childNodeIds,nodeIds,allUpdates}); }
   }
   return nodeIds;
 }
@@ -201,24 +207,32 @@ function reducer(state, action) {
     }
     case 'ADDNODES': {
       let newAllUpdates = {...state.allUpdates}
-      let nodeReceiverId = state.allSelected[state.allSelected.length - 1];
-        if (nodeReceiverId === undefined) { nodeReceiverId = 'root'; } //No selections add to root
-      let newNodeReceiver = {...(newAllUpdates[nodeReceiverId]) ? newAllUpdates[nodeReceiverId] : loadedNodeObj[nodeReceiverId]};
+      let nodeParentId = state.allSelected[state.allSelected.length - 1];
+        if (nodeParentId === undefined) { nodeParentId = 'root'; } //No selections add to root
+      let newNodeParent = {...(newAllUpdates[nodeParentId]) ? newAllUpdates[nodeParentId] : loadedNodeObj[nodeParentId]};
       for (let nodeObj of action.payload.nodes) {
+        nodeObj["parentId"] = nodeParentId;
         let nodeId = Object.keys(nodeObj)[0];
-        newNodeReceiver.childNodeIds.push(nodeId)
+        newNodeParent.childNodeIds.push(nodeId)
         newAllUpdates[nodeId] = {...nodeObj[nodeId]};
       }
-      newAllUpdates[nodeReceiverId] = newNodeReceiver;
-      console.log("++++++++++++add nodes newAllUpdates",newAllUpdates)
+      newAllUpdates[nodeParentId] = newNodeParent;
 
       let nodeIdsArr = [];
-      // return { ...state,nodeIdsArr}
       return { ...state,nodeIdsArr,allUpdates:newAllUpdates}
     }
     case 'DELETENODES': {
+      //Find parent and splice out of array of children
+      let newAllUpdates = {...state.allUpdates}
+      let nodeObj = { ...action.payload.nodeObj }
+      let nodeParentId = nodeObj.parentId;
+      let newNodeParent = {...(newAllUpdates[nodeParentId]) ? newAllUpdates[nodeParentId] : loadedNodeObj[nodeParentId]};
+      let newChildNodeIds = [...newNodeParent.childNodeIds];
+      newChildNodeIds.splice(newChildNodeIds.indexOf(action.payload.nodeId),1)
+      newNodeParent.childNodeIds = newChildNodeIds;
+      newAllUpdates[nodeParentId] = newNodeParent;
       let nodeIdsArr = [];
-      return { ...state,nodeIdsArr }
+      return { ...state,nodeIdsArr,allUpdates:newAllUpdates }
     }
 
     default:
@@ -244,6 +258,12 @@ const Node = React.memo(function Node(props) {
       margin: "2px"
     }} ><div className="noselect" style={{ textAlign: "center" }} >EMPTY</div></div>
   }
+  const deleteNode = <button onClick={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    props.transferDispatch('DELETENODES', { nodeId: props.nodeId, nodeObj: props.nodeObj })
+    // props.actions().toggleFolder(props.nodeId,props.nodeObj);
+  }}>X</button>
   const toggleLabel = (props.nodeObj.isOpen) ? "Close" : "Open";
   const toggle = <button onClick={(e) => {
     e.preventDefault();
@@ -263,6 +283,6 @@ const Node = React.memo(function Node(props) {
     margin: "2px"
   }} ><div className="noselect" style={{
     marginLeft: `${props.level * indentPx}px`
-  }}>{toggle} [icon] {props.nodeObj.label} ({numChildren})</div></div>
+  }}>{toggle} [icon] {props.nodeObj.label} ({numChildren}){deleteNode}</div></div>
 })
 
