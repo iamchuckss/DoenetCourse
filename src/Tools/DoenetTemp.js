@@ -124,10 +124,10 @@ function removeTreeNodeIdsFromAllSelected({allSelected,loadedNodeObj,allUpdates,
     }
   }
 
-  function selectVisibleTree({allSelected,loadedNodeObj,nodeId,newAllUpdates}){
-    allSelected.push(nodeId);
+  function selectVisibleTree({allSelected,loadedNodeObj,nodeId,newAllUpdates,startWithChildren=false}){
+    if (!startWithChildren) {allSelected.push(nodeId);}
     const nodeObjI = (newAllUpdates[nodeId]) ? newAllUpdates[nodeId] : loadedNodeObj[nodeId];
-      if (nodeObjI["appearance"] !== "selected"){
+      if (startWithChildren || nodeObjI["appearance"] !== "selected"){
       let newNodeObj = {...nodeObjI}
       newNodeObj["appearance"] = "selected";
       newAllUpdates[nodeId] = newNodeObj;
@@ -148,12 +148,22 @@ function reducer(state, action) {
 
   switch (action.type) {
     case 'TOGGLEFOLDER': {
-      let nodeObj = { ...action.payload.nodeObj }
-      nodeObj["isOpen"] = !nodeObj["isOpen"];
-      let allUpdates = { ...state.allUpdates };
-      allUpdates[action.payload.nodeId] = nodeObj;
+      let newNodeObj = { ...action.payload.nodeObj }
+      let newAllUpdates = { ...state.allUpdates };
+      let newAllSelected = [...state.allSelected]
+      newNodeObj["isOpen"] = !newNodeObj["isOpen"];
+      newAllUpdates[action.payload.nodeId] = newNodeObj;
+      console.log(">>> before newAllSelected",newAllSelected,"newAllUpdates",newAllUpdates)
+
+      if (newNodeObj["isOpen"] && newNodeObj.appearance === 'selected'){
+        //Opening a selected folder. Select all children
+        console.log(">>>OPENING newNodeObj",newNodeObj)
+        selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:action.payload.nodeId,newAllUpdates,startWithChildren:true})
+        console.log(">>>newAllSelected",newAllSelected,"newAllUpdates",newAllUpdates)
+      }
+      
       let nodeIdsArr = [];
-      return { ...state, allUpdates,nodeIdsArr };
+      return { ...state, allUpdates:newAllUpdates,nodeIdsArr,allSelected:newAllSelected };
     }
     case 'CLICKITEM': {
       const metakey = action.payload.metaKey;
@@ -184,23 +194,19 @@ function reducer(state, action) {
 
         //If selecting node then select all in tree 
         //if deselecting then we are done already
-        const nodeObj = (state.allUpdates[action.payload.nodeId]) ? state.allUpdates[action.payload.nodeId] : loadedNodeObj[action.payload.nodeId];
-        if (nodeObj.appearance !== "selected"){
+        // const nodeObj = (state.allUpdates[action.payload.nodeId]) ? state.allUpdates[action.payload.nodeId] : loadedNodeObj[action.payload.nodeId];
+        if (action.payload.nodeObj.appearance !== "selected"){
           selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:action.payload.nodeId,newAllUpdates})
         }
       
       } else if (metakey && !shiftKey) {
-        //Control so add just this one
-        // if (nodeObj["appearance"] === "selected"){
-        //   nodeObj["appearance"] = "default";
-        //   state.allSelected.splice(state.allSelected.indexOf(action.payload.nodeId),1)
-        // }else{
-        //   state.allSelected.push(action.payload.nodeId)
-        //   nodeObj["appearance"] = "selected";
-        // }
+        //Control so add this tree to the selection
+        if (action.payload.nodeObj.appearance !== "selected"){
+          selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:action.payload.nodeId,newAllUpdates})
+        }
       
       } else if (!metakey && shiftKey) {
-        // //Shift so add whole range
+        // //Shift is down so add a whole range of items
         // let lastNodeIdSelected = state.allSelected[state.allSelected.length - 1];
         // if (lastNodeIdSelected !== undefined) {
         // nodeObj["appearance"] = "selected";
