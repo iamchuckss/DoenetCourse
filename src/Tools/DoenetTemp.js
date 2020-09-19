@@ -124,6 +124,22 @@ function removeTreeNodeIdsFromAllSelected({allSelected,loadedNodeObj,allUpdates,
     }
   }
 
+  function selectVisibleTree({allSelected,loadedNodeObj,nodeId,newAllUpdates}){
+    allSelected.push(nodeId);
+    const nodeObjI = (newAllUpdates[nodeId]) ? newAllUpdates[nodeId] : loadedNodeObj[nodeId];
+      if (nodeObjI["appearance"] !== "selected"){
+      let newNodeObj = {...nodeObjI}
+      newNodeObj["appearance"] = "selected";
+      newAllUpdates[nodeId] = newNodeObj;
+        //if open folder and isn't already selected then select the folder's children
+        if (nodeObjI.isOpen){
+          for (let nodeChildId of nodeObjI.childNodeIds){
+            selectVisibleTree({allSelected,loadedNodeObj,nodeId:nodeChildId,newAllUpdates})
+          }
+        }
+      }
+    }
+
 
 
 function reducer(state, action) {
@@ -150,71 +166,70 @@ function reducer(state, action) {
         return { ...state };
       }
 
-      let nodeObj = { ...action.payload.nodeObj }
-      let allUpdates = { ...state.allUpdates };
-
+      let newNodeObj = { ...action.payload.nodeObj }
+      let newAllUpdates = { ...state.allUpdates };
+      let newAllSelected = [...state.allSelected ];
       let nodeIdsArr = state.nodeIdsArr;
 
       if (!metakey && !shiftKey) {
-        //No shift or control so only select/deselect this node
-        if (nodeObj["appearance"] === "selected"){
-          nodeObj["appearance"] = "default";
-        }else{
-          nodeObj["appearance"] = "selected";
+        //No shift or control 
+        //Deselect all selected nodes
+        newAllSelected = [];
+        for (let selectedNodeId of state.allSelected){
+          const nodeObj = (state.allUpdates[selectedNodeId]) ? state.allUpdates[selectedNodeId] : loadedNodeObj[selectedNodeId];
+          let newNodeObj = {...nodeObj}
+          newNodeObj["appearance"] = "default";
+          newAllUpdates[selectedNodeId] = newNodeObj;
         }
-        for (let nodeId of state.allSelected) {
-          let deselectedNode = { ...allUpdates[nodeId] }
-          deselectedNode.appearance = "default";
-          allUpdates[nodeId] = deselectedNode
-        }
-        if (nodeObj["appearance"] === "selected"){
-          state.allSelected = [action.payload.nodeId];
-        }else{
-          state.allSelected = [];
-        }
-      } else if (metakey && !shiftKey) {
-        //Control so add just this one
-        if (nodeObj["appearance"] === "selected"){
-          nodeObj["appearance"] = "default";
-          state.allSelected.splice(state.allSelected.indexOf(action.payload.nodeId),1)
-        }else{
-          state.allSelected.push(action.payload.nodeId)
-          nodeObj["appearance"] = "selected";
+
+        //If selecting node then select all in tree 
+        //if deselecting then we are done already
+        const nodeObj = (state.allUpdates[action.payload.nodeId]) ? state.allUpdates[action.payload.nodeId] : loadedNodeObj[action.payload.nodeId];
+        if (nodeObj.appearance !== "selected"){
+          selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:action.payload.nodeId,newAllUpdates})
         }
       
+      } else if (metakey && !shiftKey) {
+        //Control so add just this one
+        // if (nodeObj["appearance"] === "selected"){
+        //   nodeObj["appearance"] = "default";
+        //   state.allSelected.splice(state.allSelected.indexOf(action.payload.nodeId),1)
+        // }else{
+        //   state.allSelected.push(action.payload.nodeId)
+        //   nodeObj["appearance"] = "selected";
+        // }
+      
       } else if (!metakey && shiftKey) {
-        //Shift so add whole range
-        let lastNodeIdSelected = state.allSelected[state.allSelected.length - 1];
-        if (lastNodeIdSelected !== undefined) {
-        nodeObj["appearance"] = "selected";
-          //Find range of nodes and turn selection on for those that are off
-          //Build array of nodeids if length is 0
-          //Only build node ids array if we need it
-          if (nodeIdsArr.length === 0){
-            const latestRootFolders = ((allUpdates['root']) ? allUpdates['root'] : loadedNodeObj['root']).childNodeIds;
-            nodeIdsArr = buildNodeIdArray({loadedNodeObj,folderArr:latestRootFolders,allUpdates:state.allUpdates});
-          }
-          let indexOfLastNodeId = nodeIdsArr.indexOf(lastNodeIdSelected);
-          let indexOfCurrentNodeId = nodeIdsArr.indexOf(action.payload.nodeId);
-          let rangeArr = nodeIdsArr.slice(Math.min(indexOfLastNodeId,indexOfCurrentNodeId), Math.max(indexOfLastNodeId,indexOfCurrentNodeId));
-          for (let nodeId of rangeArr){
-            let nodeObj = (allUpdates[nodeId]) ? allUpdates[nodeId] : loadedNodeObj[nodeId];
-            if (nodeObj["appearance"] !== "selected"){
-              let newNodeObj = { ...nodeObj }
-              newNodeObj["appearance"] = "selected";
-              state.allSelected.push(nodeId);
-              allUpdates[nodeId] = newNodeObj;
-            }
+        // //Shift so add whole range
+        // let lastNodeIdSelected = state.allSelected[state.allSelected.length - 1];
+        // if (lastNodeIdSelected !== undefined) {
+        // nodeObj["appearance"] = "selected";
+        //   //Find range of nodes and turn selection on for those that are off
+        //   //Build array of nodeids if length is 0
+        //   //Only build node ids array if we need it
+        //   if (nodeIdsArr.length === 0){
+        //     const latestRootFolders = ((allUpdates['root']) ? allUpdates['root'] : loadedNodeObj['root']).childNodeIds;
+        //     nodeIdsArr = buildNodeIdArray({loadedNodeObj,folderArr:latestRootFolders,allUpdates:state.allUpdates});
+        //   }
+        //   let indexOfLastNodeId = nodeIdsArr.indexOf(lastNodeIdSelected);
+        //   let indexOfCurrentNodeId = nodeIdsArr.indexOf(action.payload.nodeId);
+        //   let rangeArr = nodeIdsArr.slice(Math.min(indexOfLastNodeId,indexOfCurrentNodeId), Math.max(indexOfLastNodeId,indexOfCurrentNodeId));
+        //   for (let nodeId of rangeArr){
+        //     let nodeObj = (allUpdates[nodeId]) ? allUpdates[nodeId] : loadedNodeObj[nodeId];
+        //     if (nodeObj["appearance"] !== "selected"){
+        //       let newNodeObj = { ...nodeObj }
+        //       newNodeObj["appearance"] = "selected";
+        //       state.allSelected.push(nodeId);
+        //       allUpdates[nodeId] = newNodeObj;
+        //     }
             
-          }
+        //   }
 
-        }
+        // }
       }
 
-
-      allUpdates[action.payload.nodeId] = nodeObj;
-      if (state.allSelected.length === 0){ mode = "READY"}
-      return { ...state, allUpdates,nodeIdsArr,mode };
+      if (newAllSelected.length === 0){ mode = "READY"}
+      return { ...state, allUpdates:newAllUpdates,nodeIdsArr,allSelected:newAllSelected,mode };
     }
     case 'ADDNODES': {
       let newAllUpdates = {...state.allUpdates}
