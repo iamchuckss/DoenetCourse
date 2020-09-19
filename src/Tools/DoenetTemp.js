@@ -87,6 +87,7 @@ export default function browser() {
 
 
 
+
   return <>
   
     <button onClick={()=>{
@@ -115,8 +116,18 @@ function buildNodeIdArray({loadedNodeObj={},folderArr=[],nodeIds=[],allUpdates={
   return nodeIds;
 }
 
+function removeTreeNodeIdsFromAllSelected({allSelected,loadedNodeObj,allUpdates,nodeId}){
+  allSelected.splice(allSelected.indexOf(nodeId),1)
+  const nodeObjI = (allUpdates[nodeId]) ? allUpdates[nodeId] : loadedNodeObj[nodeId];
+    for (let nodeChildId of nodeObjI.childNodeIds){
+      removeTreeNodeIdsFromAllSelected({allSelected,loadedNodeObj,allUpdates,nodeId:nodeChildId})
+    }
+  }
+
+
+
 function reducer(state, action) {
-  console.log("REDUCER type:", action.type, "transferPayload:", action.payload)
+  console.log("----------REDUCER type:", action.type, "transferPayload:", action.payload)
   const loadedNodeObj = action.payload.loadedNodeObj;
 
   switch (action.type) {
@@ -211,30 +222,32 @@ function reducer(state, action) {
         if (nodeParentId === undefined) { nodeParentId = 'root'; } //No selections add to root
       let newNodeParent = {...(newAllUpdates[nodeParentId]) ? newAllUpdates[nodeParentId] : loadedNodeObj[nodeParentId]};
       for (let nodeObj of action.payload.nodes) {
-        nodeObj["parentId"] = nodeParentId;
         let nodeId = Object.keys(nodeObj)[0];
         newNodeParent.childNodeIds.push(nodeId)
+        nodeObj[nodeId]["parentId"] = nodeParentId;
         newAllUpdates[nodeId] = {...nodeObj[nodeId]};
       }
       newAllUpdates[nodeParentId] = newNodeParent;
-
       let nodeIdsArr = [];
       return { ...state,nodeIdsArr,allUpdates:newAllUpdates}
     }
     case 'DELETENODES': {
       //Find parent and splice out of array of children
+      let newAllSelected = [...state.allSelected];
+      removeTreeNodeIdsFromAllSelected({allSelected:newAllSelected,loadedNodeObj,allUpdates:state.allUpdates,nodeId:action.payload.nodeId});
+
       let newAllUpdates = {...state.allUpdates}
       let nodeObj = { ...action.payload.nodeObj }
       let nodeParentId = nodeObj.parentId;
       let newNodeParent = {...(newAllUpdates[nodeParentId]) ? newAllUpdates[nodeParentId] : loadedNodeObj[nodeParentId]};
-      console.log(">>>HERE")
       let newChildNodeIds = [...newNodeParent.childNodeIds];
-      console.log(">>>newChildNodeIds",newChildNodeIds)
-      // newChildNodeIds.splice(newChildNodeIds.indexOf(action.payload.nodeId),1)
-      // newNodeParent.childNodeIds = newChildNodeIds;
-      // newAllUpdates[nodeParentId] = newNodeParent;
-      // let nodeIdsArr = [];
-      return { ...state,nodeIdsArr,allUpdates:newAllUpdates }
+      newChildNodeIds.splice(newChildNodeIds.indexOf(action.payload.nodeId),1)
+      newNodeParent.childNodeIds = newChildNodeIds;
+      newAllUpdates[nodeParentId] = newNodeParent;
+      let nodeIdsArr = [];
+      let mode = state.mode;
+      if (newAllSelected.length === 0){ mode = "READY"}
+      return { ...state,nodeIdsArr,allUpdates:newAllUpdates,allSelected:newAllSelected,mode }
     }
 
     default:
