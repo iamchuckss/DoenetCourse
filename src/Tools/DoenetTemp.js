@@ -153,13 +153,10 @@ function reducer(state, action) {
       let newAllSelected = [...state.allSelected]
       newNodeObj["isOpen"] = !newNodeObj["isOpen"];
       newAllUpdates[action.payload.nodeId] = newNodeObj;
-      console.log(">>> before newAllSelected",newAllSelected,"newAllUpdates",newAllUpdates)
 
       if (newNodeObj["isOpen"] && newNodeObj.appearance === 'selected'){
         //Opening a selected folder. Select all children
-        console.log(">>>OPENING newNodeObj",newNodeObj)
         selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:action.payload.nodeId,newAllUpdates,startWithChildren:true})
-        console.log(">>>newAllSelected",newAllSelected,"newAllUpdates",newAllUpdates)
       }
       
       let nodeIdsArr = [];
@@ -187,9 +184,9 @@ function reducer(state, action) {
         newAllSelected = [];
         for (let selectedNodeId of state.allSelected){
           const nodeObj = (state.allUpdates[selectedNodeId]) ? state.allUpdates[selectedNodeId] : loadedNodeObj[selectedNodeId];
-          let newNodeObj = {...nodeObj}
-          newNodeObj["appearance"] = "default";
-          newAllUpdates[selectedNodeId] = newNodeObj;
+          let selectedNodeObj = {...nodeObj}
+          selectedNodeObj["appearance"] = "default";
+          newAllUpdates[selectedNodeId] = selectedNodeObj;
         }
 
         //If selecting node then select all in tree 
@@ -206,32 +203,32 @@ function reducer(state, action) {
         }
       
       } else if (!metakey && shiftKey) {
-        // //Shift is down so add a whole range of items
-        // let lastNodeIdSelected = state.allSelected[state.allSelected.length - 1];
-        // if (lastNodeIdSelected !== undefined) {
-        // nodeObj["appearance"] = "selected";
-        //   //Find range of nodes and turn selection on for those that are off
-        //   //Build array of nodeids if length is 0
-        //   //Only build node ids array if we need it
-        //   if (nodeIdsArr.length === 0){
-        //     const latestRootFolders = ((allUpdates['root']) ? allUpdates['root'] : loadedNodeObj['root']).childNodeIds;
-        //     nodeIdsArr = buildNodeIdArray({loadedNodeObj,folderArr:latestRootFolders,allUpdates:state.allUpdates});
-        //   }
-        //   let indexOfLastNodeId = nodeIdsArr.indexOf(lastNodeIdSelected);
-        //   let indexOfCurrentNodeId = nodeIdsArr.indexOf(action.payload.nodeId);
-        //   let rangeArr = nodeIdsArr.slice(Math.min(indexOfLastNodeId,indexOfCurrentNodeId), Math.max(indexOfLastNodeId,indexOfCurrentNodeId));
-        //   for (let nodeId of rangeArr){
-        //     let nodeObj = (allUpdates[nodeId]) ? allUpdates[nodeId] : loadedNodeObj[nodeId];
-        //     if (nodeObj["appearance"] !== "selected"){
-        //       let newNodeObj = { ...nodeObj }
-        //       newNodeObj["appearance"] = "selected";
+        //Shift is down so add a whole range of items
+        let lastNodeIdSelected = state.allSelected[state.allSelected.length - 1];
+        if (lastNodeIdSelected !== undefined) {
+        // newNodeObj["appearance"] = "selected";
+        //Find range of nodes and turn selection on for those that are off
+        //Build array of nodeids if length is 0
+        //Only build node ids array if we need it
+          if (nodeIdsArr.length === 0){
+            const latestRootFolders = ((state.allUpdates['root']) ? state.allUpdates['root'] : loadedNodeObj['root']).childNodeIds;
+            nodeIdsArr = buildNodeIdArray({loadedNodeObj,folderArr:latestRootFolders,allUpdates:state.allUpdates});
+          }
+          let indexOfLastNodeId = nodeIdsArr.indexOf(lastNodeIdSelected);
+          let indexOfCurrentNodeId = nodeIdsArr.indexOf(action.payload.nodeId);
+          let rangeArr = nodeIdsArr.slice(Math.min(indexOfLastNodeId,indexOfCurrentNodeId), Math.max(indexOfLastNodeId,indexOfCurrentNodeId)+1);
+          for (let nodeId of rangeArr){
+            let nodeObj = (newAllUpdates[nodeId]) ? newAllUpdates[nodeId] : loadedNodeObj[nodeId];
+            if (nodeObj["appearance"] !== "selected"){
+              selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId,newAllUpdates})
+              // let newNodeObj = { ...nodeObj }
         //       state.allSelected.push(nodeId);
         //       allUpdates[nodeId] = newNodeObj;
-        //     }
+            }
             
-        //   }
+          }
 
-        // }
+        }
       }
 
       if (newAllSelected.length === 0){ mode = "READY"}
