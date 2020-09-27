@@ -349,7 +349,7 @@ function reducer(state, action) {
       const previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
       const newParentNode = { ...newAllUpdates[dropTargetId] ? newAllUpdates[dropTargetId] : loadedNodeObj[dropTargetId]};
       
-      if (previousParentId == dropTargetId || dragItemId == dropTargetId) { // prevent dropping into itself 
+      if (previousParentId == dropTargetId) { // prevent dropping into the same parent 
         return { ...state };
       }
 
@@ -367,7 +367,7 @@ function reducer(state, action) {
           delete newAllUpdates[draggedShadowId];
         }
       }
-      if (dropTargetId !== sourceParentId) {
+      if (dropTargetId !== sourceParentId && dropTargetId !== dragItemId) {
         // add to current list
         console.log("HERE Adding new item")
         const draggedShadowNodeObj = {
@@ -393,23 +393,35 @@ function reducer(state, action) {
     }
     case 'DROP': { 
       const { id, previousParentId, sourceParentId } = { ...state.draggedItemData };
-      const dropTargetId = action.payload.dropTargetId;
 
       const newAllUpdates = { ...state.allUpdates }
-      // const currentParentNode = { ...newAllUpdates[dropTargetId] ? newAllUpdates[dropTargetId] : loadedNodeObj[dropTargetId]};
-      // let currentList = [...currentParentNode.childNodeIds];
+      
+      // item moved out of original parent
+      if (previousParentId !== sourceParentId) {
+        const previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
+        let previousList = [...previousParentNode.childNodeIds];
+        
+        // replace shadow in previousParentId with draggedItem
+        let indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
+        if (indexInList > -1) {
+          previousList[indexInList] = id;
+        }
+        
+        // remove draggedItem from sourceParentId
+        const sourceParentNode = { ...newAllUpdates[sourceParentId] ? newAllUpdates[sourceParentId] : loadedNodeObj[sourceParentId]};
+        let sourceParentList = [...sourceParentNode.childNodeIds];
+        indexInList = sourceParentList.findIndex(itemId => itemId == id);
+        if (indexInList > -1) {
+          sourceParentList.splice(indexInList, 1);
+        }
 
-      // // delete from previousParentId
-      // if (dropTargetId !== sourceParentId) {
-      //   const indexInList = currentList.findIndex(itemId => itemId == draggedShadowId);
-      //   if (indexInList > -1) {
-      //     currentList.splice(indexInList, 1);
-      //   }
-      //   if (newAllUpdates[draggedShadowId]) {
-      //     delete newAllUpdates[draggedShadowId];
-      //   }
-      // }
-
+        newAllUpdates[id].parentId = previousParentId;
+        newAllUpdates[previousParentId].childNodeIds = previousList;
+        newAllUpdates[sourceParentId].childNodeIds = sourceParentList;
+      }
+      if (newAllUpdates[draggedShadowId]) {
+        delete newAllUpdates[draggedShadowId];
+      }
       return { ...state, draggedItemData: null, allUpdates: newAllUpdates };
     }
     default:
