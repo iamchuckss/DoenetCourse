@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useCallback, useReducer } from 'react';
 import './util.css';
 import nanoid from 'nanoid';
+import WithDropTarget from "../imports/dropTarget";
+import WithDragItem from "../imports/dragItem";
 
 
 //Simple folder contents
@@ -54,8 +56,16 @@ export default function browser() {
     })
  
   const [transferPayload, setTransferPayload] = useState({})
-
-  const [state, dispatch] = useReducer(reducer, { mode: "READY", allUpdates: {}, allSelected: [], nodeIdsArr: [] });
+  const initialState = { 
+    mode: "READY", 
+    allUpdates: {}, 
+    allSelected: [], 
+    nodeIdsArr: [], 
+    draggedItemData: { id: null, previousParentId: null, sourceParentId: null },
+    validDrop: false,
+    nodeObjCache: {}
+  }
+  const [state, dispatch] = useReducer(reducer, initialState);
   console.log("\n###BASESTATE", state)
 
   // Dispatch Caller
@@ -65,8 +75,50 @@ export default function browser() {
   }
   const transferDispatch = useCallback((action, payload) => { payload['loadedNodeObj'] = loadedNodeObj; setTransferPayload({ action, payload }) }, []);
 
-  let nodes = [];
-  
+  const createDropTarget = (id, element) => {
+    const onDropEnter = () => {
+      if (!loadedNodeObj[id].isOpen) {
+        transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: loadedNodeObj[id] })
+      }      
+      transferDispatch("DROPENTER", {dropTargetId: id});
+      
+    } 
+    
+    const onDrop = () => {
+      transferDispatch("DROP", {dropTargetId: id});
+    }
+
+    return (
+      <WithDropTarget id={id} key={`droptarget-${id}`} onDrop={onDrop} onDropEnter={onDropEnter}>
+        { element }
+      </WithDropTarget>
+    )
+  }
+
+  const createDragItem = (id, element) => {
+    const onDragStart = () => {
+      console.log("dispatch dragStart event: ", id)
+      transferDispatch("DRAGSTART", { dragItemId: id });
+    } 
+    
+    // const onDragOver = () => {
+    //   console.log("dispatch dragged over event: ", id)
+    //   dispatch("DRAGOVER", {dragItemId: id});
+    // }
+
+    const onDragEnd = () => {
+      console.log("dispatch dragEnd event: ", id)
+      // transferDispatch("DRAGEND", {});
+    }
+
+    return (
+      <WithDragItem id={id} key={`dragitem-${id}`} onDragStart={onDragStart} onDragEnd={onDragEnd} >
+        { element }
+      </WithDragItem>
+    )
+  }
+
+  let nodes = [];  
   
   const latestRootFolders = ((state.allUpdates['root']) ? state.allUpdates['root'] : loadedNodeObj['root']).childNodeIds;
   buildNodeArray(latestRootFolders);
@@ -74,10 +126,14 @@ export default function browser() {
   function buildNodeArray(folderArr, level = 0, parent = "") {
     for (let [i, id] of folderArr.entries()) {
       const nodeObjI = (state.allUpdates[id]) ? state.allUpdates[id] : loadedNodeObj[id];
-        nodes.push(<Node key={`node${level}-${i}${parent}`} level={level} nodeObj={nodeObjI} nodeId={id} transferDispatch={transferDispatch} />)
-        if (nodeObjI.isOpen) {
-          buildNodeArray(nodeObjI.childNodeIds, level + 1, `${parent}-${i}`)
-        }
+      const nodeItem = <Node key={`node${level}-${i}${parent}`} level={level} nodeObj={nodeObjI} nodeId={id} transferDispatch={transferDispatch} />;
+      const draggableNodeItem = createDragItem(id, nodeItem);
+      const draggableAndDroppableNodeItem = createDropTarget(id, draggableNodeItem);
+      
+      nodes.push(draggableAndDroppableNodeItem);
+      if (nodeObjI.isOpen) {
+        buildNodeArray(nodeObjI.childNodeIds, level + 1, `${parent}-${i}`)
+      }
     }
     if (folderArr.length === 0) {
       nodes.push(<Node key={`node${level}-0${parent}`} level={level} empty={true} />)
@@ -145,6 +201,7 @@ function removeTreeNodeIdsFromAllSelected({allSelected,loadedNodeObj,allUpdates,
 function reducer(state, action) {
   console.log("----------REDUCER type:", action.type, "transferPayload:", action.payload)
   const loadedNodeObj = action.payload.loadedNodeObj;
+  const draggedShadowId = "draggedshadow";
 
   switch (action.type) {
     case 'TOGGLEFOLDER': {
@@ -267,9 +324,96 @@ function reducer(state, action) {
       if (newAllSelected.length === 0){ mode = "READY"}
       return { ...state,nodeIdsArr,allUpdates:newAllUpdates,allSelected:newAllSelected,mode }
     }
+    case 'DRAGSTART': { 
+      const id = action.payload.dragItemId;
+      const draggedObject = { ...state.allUpdates[id] ? state.allUpdates[id] : loadedNodeObj[id] };
+      const draggedItemData = {
+        id: id,
+        previousParentId: draggedObject.parentId,
+        sourceParentId: draggedObject.parentId,
+      }
+      
+      return { ...state, draggedItemData: draggedItemData }
+    }
+    case 'DRAGEND': { 
+      return { ...state, draggedItemData: null}
+    }
+    case 'DROPENTER': { 
 
+      const { id, previousParentId, sourceParentId } = { ...state.draggedItemData };
+      const dragItemId = id;
+      const dropTargetId = action.payload.dropTargetId;
+      
+      // move draggedItem to dropTarget
+      const newAllUpdates = { ...state.allUpdates }
+      const previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
+      const newParentNode = { ...newAllUpdates[dropTargetId] ? newAllUpdates[dropTargetId] : loadedNodeObj[dropTargetId]};
+      
+      if (previousParentId == dropTargetId || dragItemId == dropTargetId) { // prevent dropping into itself 
+        return { ...state };
+      }
+
+      let previousList = [...previousParentNode.childNodeIds];
+      let currentList = [...newParentNode.childNodeIds];
+
+      // remove from previous list, delete from newAllUpdates
+      if (previousParentId !== sourceParentId) {
+        console.log("HERE removing from", previousParentId, dropTargetId)
+        const indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
+        if (indexInList > -1) {
+          previousList.splice(indexInList, 1);
+        }
+        if (newAllUpdates[draggedShadowId]) {
+          delete newAllUpdates[draggedShadowId];
+        }
+      }
+      if (dropTargetId !== sourceParentId) {
+        // add to current list
+        console.log("HERE Adding new item")
+        const draggedShadowNodeObj = {
+          label: "SHADOW",
+          childNodeIds: [],
+          isOpen: false,
+          appearance: "dropperview",
+          parentId: dropTargetId,
+        }
+        newAllUpdates[draggedShadowId] = draggedShadowNodeObj;
+        currentList.push(draggedShadowId);
+      }
+      
+      previousParentNode.childNodeIds = previousList;
+      newAllUpdates[previousParentId] = previousParentNode;
+      newParentNode.childNodeIds = currentList;
+      newAllUpdates[dropTargetId] = newParentNode;
+            
+      const updatedDraggedItemData = { ...state.draggedItemData };
+      updatedDraggedItemData.previousParentId = dropTargetId;
+      
+      return { ...state, draggedItemData: updatedDraggedItemData, allUpdates: newAllUpdates }
+    }
+    case 'DROP': { 
+      const { id, previousParentId, sourceParentId } = { ...state.draggedItemData };
+      const dropTargetId = action.payload.dropTargetId;
+
+      const newAllUpdates = { ...state.allUpdates }
+      // const currentParentNode = { ...newAllUpdates[dropTargetId] ? newAllUpdates[dropTargetId] : loadedNodeObj[dropTargetId]};
+      // let currentList = [...currentParentNode.childNodeIds];
+
+      // // delete from previousParentId
+      // if (dropTargetId !== sourceParentId) {
+      //   const indexInList = currentList.findIndex(itemId => itemId == draggedShadowId);
+      //   if (indexInList > -1) {
+      //     currentList.splice(indexInList, 1);
+      //   }
+      //   if (newAllUpdates[draggedShadowId]) {
+      //     delete newAllUpdates[draggedShadowId];
+      //   }
+      // }
+
+      return { ...state, draggedItemData: null, allUpdates: newAllUpdates };
+    }
     default:
-      throw new Error(`Unhandled type in reducer ${action, type}`);
+      throw new Error(`Unhandled type in reducer ${action, action.type}`);
   }
 }
 
@@ -318,4 +462,3 @@ const Node = React.memo(function Node(props) {
     marginLeft: `${props.level * indentPx}px`
   }}>{toggle} [icon] {props.nodeObj.label} ({numChildren}){deleteNode}</div></div>
 })
-
