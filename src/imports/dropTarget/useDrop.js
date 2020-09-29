@@ -17,9 +17,9 @@ const useDrop = ({ ref, onDrop, onDropLeave, onDropEnter }) => {
   };
 
   const dropEnterCb = ev => {
+    onDropEnter && onDropEnter();
     ev.preventDefault();
     ev.stopPropagation();
-    onDropEnter && onDropEnter();
   };
 
   const onDragOver = (ev) => {

@@ -52,7 +52,7 @@ export default function browser() {
         isOpen: false, 
         appearance: "default",
         parentId: "rf2",
-      }
+      },
     })
  
   const [transferPayload, setTransferPayload] = useState({})
@@ -77,11 +77,11 @@ export default function browser() {
 
   const createDropTarget = (id, element) => {
     const onDropEnter = () => {
-      if (!loadedNodeObj[id].isOpen) {
-        transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: loadedNodeObj[id] })
+      const dropTargetObj = { ...state.allUpdates[id] ? state.allUpdates[id] : loadedNodeObj[id] };
+      if (!dropTargetObj.isOpen) {
+        transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dropTargetObj })
       }      
       transferDispatch("DROPENTER", {dropTargetId: id});
-      
     } 
     
     const onDrop = () => {
@@ -352,13 +352,14 @@ function reducer(state, action) {
       if (previousParentId == dropTargetId) { // prevent dropping into the same parent 
         return { ...state };
       }
+      console.log("HERE DROPENTER", dropTargetId)
 
       let previousList = [...previousParentNode.childNodeIds];
       let currentList = [...newParentNode.childNodeIds];
 
       // remove from previous list, delete from newAllUpdates
       if (previousParentId !== sourceParentId) {
-        console.log("HERE removing from", previousParentId, dropTargetId)
+        console.log("HERE removing from", previousParentId)
         const indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
         if (indexInList > -1) {
           previousList.splice(indexInList, 1);
@@ -387,15 +388,15 @@ function reducer(state, action) {
       newAllUpdates[dropTargetId] = newParentNode;
             
       const updatedDraggedItemData = { ...state.draggedItemData };
-      updatedDraggedItemData.previousParentId = dropTargetId;
+      updatedDraggedItemData.previousParentId = dropTargetId !== dragItemId ? dropTargetId : sourceParentId;
+      let nodeIdsArr = [];
       
-      return { ...state, draggedItemData: updatedDraggedItemData, allUpdates: newAllUpdates }
+      return { ...state, nodeIdsArr, draggedItemData: updatedDraggedItemData, allUpdates: newAllUpdates }
     }
     case 'DROP': { 
       const { id, previousParentId, sourceParentId } = { ...state.draggedItemData };
 
       const newAllUpdates = { ...state.allUpdates }
-      
       // item moved out of original parent
       if (previousParentId !== sourceParentId) {
         const previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
@@ -462,6 +463,7 @@ const Node = React.memo(function Node(props) {
   }}>{toggleLabel}</button>
   let bgcolor = "#e2e2e2";
   if (props.nodeObj.appearance === "selected") { bgcolor = "#6de5ff"; }
+  if (props.nodeObj.appearance === "dropperview") { bgcolor = "#53ff47"; }
   return <div onClick={(e) => {
     props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
   }} style={{
