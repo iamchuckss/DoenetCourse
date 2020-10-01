@@ -208,14 +208,32 @@ function reducer(state, action) {
       let newNodeObj = { ...action.payload.nodeObj }
       let newAllUpdates = { ...state.allUpdates };
       let newAllSelected = [...state.allSelected]
-      newNodeObj["isOpen"] = !newNodeObj["isOpen"];
+      newNodeObj["isOpen"] = !newNodeObj["isOpen"];      
       newAllUpdates[action.payload.nodeId] = newNodeObj;
 
       if (newNodeObj["isOpen"] && newNodeObj.appearance === 'selected'){
         //Opening a selected folder. Select all children
         selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:action.payload.nodeId,newAllUpdates,startWithChildren:true})
       }
-      
+
+      // If closing a folder, deselect itself and children
+      if (!newNodeObj["isOpen"]) {
+        let processQueue = [action.payload.nodeId];
+
+        while (processQueue.length != 0) {
+          const currentNodeObjId = processQueue.pop();
+          const currentNodeObj = (newAllUpdates[currentNodeObjId]) ? newAllUpdates[currentNodeObjId] : loadedNodeObj[currentNodeObjId];          
+          console.log("HERE", currentNodeObj)
+          // deselect current node
+          currentNodeObj["appearance"] = "default";
+          newAllUpdates[currentNodeObjId] = currentNodeObj;
+
+          for (let childNodeObjId of currentNodeObj.childNodeIds) {
+            processQueue.push(childNodeObjId);
+          }
+        }
+      }
+
       let nodeIdsArr = [];
       return { ...state, allUpdates:newAllUpdates,nodeIdsArr,allSelected:newAllSelected };
     }
@@ -352,14 +370,12 @@ function reducer(state, action) {
       if (previousParentId == dropTargetId) { // prevent dropping into the same parent 
         return { ...state };
       }
-      console.log("HERE DROPENTER", dropTargetId)
 
       let previousList = [...previousParentNode.childNodeIds];
       let currentList = [...newParentNode.childNodeIds];
 
       // remove from previous list, delete from newAllUpdates
       if (previousParentId !== sourceParentId) {
-        console.log("HERE removing from", previousParentId)
         const indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
         if (indexInList > -1) {
           previousList.splice(indexInList, 1);
@@ -370,7 +386,6 @@ function reducer(state, action) {
       }
       if (dropTargetId !== sourceParentId && dropTargetId !== dragItemId) {
         // add to current list
-        console.log("HERE Adding new item")
         const draggedShadowNodeObj = {
           label: "SHADOW",
           childNodeIds: [],
