@@ -13,14 +13,14 @@ export default function browser() {
       'root': {childNodeIds:['rf1', 'rf2']},
       'rf1': {
         label: "root folder",
-        childNodeIds: ['f1', 'f3'],
+        childNodeIds: ['f1', 'f3', 'f4'],
         isOpen: true,
         appearance: "default",
         parentId: "root",
       },
       'rf2': {
         label: "root folder 2",
-        childNodeIds: ['f4'],
+        childNodeIds: [],
         isOpen: true,
         appearance: "default",
         parentId: "root",
@@ -51,7 +51,7 @@ export default function browser() {
         childNodeIds: [],
         isOpen: false, 
         appearance: "default",
-        parentId: "rf2",
+        parentId: "rf1",
       },
     })
  
@@ -89,7 +89,7 @@ export default function browser() {
     }
 
     return (
-      <WithDropTarget id={id} key={`droptarget-${id}`} onDrop={onDrop} onDropEnter={onDropEnter}>
+      <WithDropTarget id={id} key={`droptarget-${id}`} onDrop={onDrop}>
         { element }
       </WithDropTarget>
     )
@@ -101,10 +101,14 @@ export default function browser() {
       transferDispatch("DRAGSTART", { dragItemId: id });
     } 
     
-    // const onDragOver = () => {
-    //   console.log("dispatch dragged over event: ", id)
-    //   dispatch("DRAGOVER", {dragItemId: id});
-    // }
+    const onDragOver = (ev, id) => {
+      console.log("dispatch dragged over event: ", id)
+      const dropTargetObj = { ...state.allUpdates[id] ? state.allUpdates[id] : loadedNodeObj[id] };
+      // if (!dropTargetObj.isOpen) {
+      //   transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dropTargetObj })
+      // }      
+      transferDispatch("DRAGOVER", {dropTargetId: id, ev: ev});
+    }
 
     const onDragEnd = () => {
       console.log("dispatch dragEnd event: ", id)
@@ -112,7 +116,7 @@ export default function browser() {
     }
 
     return (
-      <WithDragItem id={id} key={`dragitem-${id}`} onDragStart={onDragStart} onDragEnd={onDragEnd} >
+      <WithDragItem id={id} key={`dragitem-${id}`} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} >
         { element }
       </WithDragItem>
     )
@@ -223,10 +227,10 @@ function reducer(state, action) {
         while (processQueue.length != 0) {
           const currentNodeObjId = processQueue.pop();
           const currentNodeObj = (newAllUpdates[currentNodeObjId]) ? newAllUpdates[currentNodeObjId] : loadedNodeObj[currentNodeObjId];          
-          console.log("HERE", currentNodeObj)
           // deselect current node
           currentNodeObj["appearance"] = "default";
           newAllUpdates[currentNodeObjId] = currentNodeObj;
+          newAllSelected = newAllSelected.splice(newAllSelected.indexOf(currentNodeObjId), 1);
 
           for (let childNodeObjId of currentNodeObj.childNodeIds) {
             processQueue.push(childNodeObjId);
@@ -407,6 +411,105 @@ function reducer(state, action) {
       let nodeIdsArr = [];
       
       return { ...state, nodeIdsArr, draggedItemData: updatedDraggedItemData, allUpdates: newAllUpdates }
+    }
+    case 'DRAGOVER': { 
+      const { id, previousParentId, sourceParentId } = { ...state.draggedItemData };
+      const dragItemId = id;
+      const dropTargetId = action.payload.dropTargetId;
+      
+      const updatedDraggedItemData = { ...state.draggedItemData };
+      const newAllUpdates = { ...state.allUpdates }
+      const previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
+      let previousList = [...previousParentNode.childNodeIds];
+
+      // if the item is dragged over itself, remove any shadow then return
+      if (dragItemId == dropTargetId || dropTargetId == draggedShadowId) {
+        if (dragItemId == dropTargetId && newAllUpdates[draggedShadowId]) {
+          const indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
+          console.log("HERE deleting", indexInList)
+          if (indexInList > -1) {
+            previousList.splice(indexInList, 1);
+          }       
+          newAllUpdates[previousParentId].childNodeIds = previousList;
+          delete newAllUpdates[draggedShadowId];
+        }
+        return { ...state, allUpdates: newAllUpdates };
+      }
+      
+
+      // add shadow into dropTargetNode.parentId
+      const dropTargetNode = { ...newAllUpdates[dropTargetId] ? newAllUpdates[dropTargetId] : loadedNodeObj[dropTargetId]};
+      const dropTargetParentNode = { ...newAllUpdates[dropTargetNode.parentId] ? newAllUpdates[dropTargetNode.parentId] : loadedNodeObj[dropTargetNode.parentId]};
+      let dropTargetParentChildList = [...dropTargetParentNode.childNodeIds];      
+
+      if (previousParentId !== dropTargetNode.parentId || !newAllUpdates[draggedShadowId]) {
+        const draggedShadowNodeObj = {
+          label: "SHADOW",
+          childNodeIds: [],
+          isOpen: false,
+          appearance: "dropperview",
+          parentId: dropTargetNode.parentId,
+        }
+        updatedDraggedItemData.previousParentId = dropTargetNode.parentId;
+        newAllUpdates[draggedShadowId] = draggedShadowNodeObj;
+      }
+
+      // add the shadow after the dragged over item
+      const dropTargetIndex = dropTargetParentChildList.findIndex(itemId => itemId == dropTargetId);
+      dropTargetParentChildList = dropTargetParentChildList.filter(itemId => itemId != draggedShadowId);
+      dropTargetParentChildList.splice(dropTargetIndex, 0, draggedShadowId);
+
+      dropTargetParentNode.childNodeIds = dropTargetParentChildList;
+      newAllUpdates[dropTargetNode.parentId] = dropTargetParentNode;
+      
+      // // move draggedItem to dropTarget
+      // const newAllUpdates = { ...state.allUpdates }
+      // const previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
+      // const newParentNode = { ...newAllUpdates[dropTargetId] ? newAllUpdates[dropTargetId] : loadedNodeObj[dropTargetId]};
+      
+      // if (previousParentId == dropTargetId) { // prevent dropping into the same parent 
+      //   return { ...state };
+      // }
+
+      // let previousList = [...previousParentNode.childNodeIds];
+      // let currentList = [...newParentNode.childNodeIds];
+
+      // // remove from previous list, delete from newAllUpdates
+      // if (previousParentId !== sourceParentId) {
+      //   const indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
+      //   if (indexInList > -1) {
+      //     previousList.splice(indexInList, 1);
+      //   }
+      //   if (newAllUpdates[draggedShadowId]) {
+      //     delete newAllUpdates[draggedShadowId];
+      //   }
+      // }
+      // if (dropTargetId !== sourceParentId && dropTargetId !== dragItemId) {
+      //   // add to current list
+      //   const draggedShadowNodeObj = {
+      //     label: "SHADOW",
+      //     childNodeIds: [],
+      //     isOpen: false,
+      //     appearance: "dropperview",
+      //     parentId: dropTargetId,
+      //   }
+      //   newAllUpdates[draggedShadowId] = draggedShadowNodeObj;
+      //   currentList.push(draggedShadowId);
+      // }
+      
+      // previousParentNode.childNodeIds = previousList;
+      // newAllUpdates[previousParentId] = previousParentNode;
+      // newParentNode.childNodeIds = currentList;
+      // newAllUpdates[dropTargetId] = newParentNode;
+            
+      // const updatedDraggedItemData = { ...state.draggedItemData };
+      // updatedDraggedItemData.previousParentId = dropTargetId !== dragItemId ? dropTargetId : sourceParentId;
+      // let nodeIdsArr = [];
+      
+      // return { ...state, nodeIdsArr, draggedItemData: updatedDraggedItemData, allUpdates: newAllUpdates }
+
+
+      return { ...state, draggedItemData: updatedDraggedItemData, allUpdates: newAllUpdates }
     }
     case 'DROP': { 
       const { id, previousParentId, sourceParentId } = { ...state.draggedItemData };

@@ -14,7 +14,7 @@ const WithDragItem = ({ children, dragEffect, id, onDragStart, onDragOver, onDra
       dragImage.style.visibility = "hidden";
       event.dataTransfer.setDragImage(dragImage, 0, 0);
     },
-    onDragOver: () => onDragOver && onDragOver(id),
+    onDragOver: (ev) => onDragOver && onDragOver(ev, id),
     onDragEnd: () => onDragEnd && onDragEnd()
   });
 
