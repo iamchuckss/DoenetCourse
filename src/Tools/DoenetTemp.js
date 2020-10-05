@@ -20,7 +20,7 @@ export default function browser() {
       },
       'rf2': {
         label: "root folder 2",
-        childNodeIds: [],
+        childNodeIds: ['f5'],
         isOpen: true,
         appearance: "default",
         parentId: "root",
@@ -53,9 +53,39 @@ export default function browser() {
         appearance: "default",
         parentId: "rf1",
       },
+      'f5': {
+        label: "folder 5",
+        childNodeIds: ['f6','f7','f8'],
+        isOpen: true, 
+        appearance: "default",
+        parentId: "rf2",
+      },
+      'f6': {
+        label: "folder 6",
+        childNodeIds: [],
+        isOpen: false, 
+        appearance: "default",
+        parentId: "f5",
+      },
+      'f7': {
+        label: "folder 7",
+        childNodeIds: [],
+        isOpen: false, 
+        appearance: "default",
+        parentId: "f5",
+      },
+      'f8': {
+        label: "folder 8",
+        childNodeIds: [],
+        isOpen: false, 
+        appearance: "default",
+        parentId: "f5",
+      },
     })
  
   const [transferPayload, setTransferPayload] = useState({})
+  const [clearSelection, setClearSelection] = useState(false);
+
   const initialState = { 
     mode: "READY", 
     allUpdates: {}, 
@@ -67,7 +97,11 @@ export default function browser() {
   }
   const [state, dispatch] = useReducer(reducer, initialState);
   console.log("\n###BASESTATE", state)
-
+  if (clearSelection){
+    dispatch({ type: "CLEARALLSELECTED" })
+    setClearSelection(false);
+  }
+ 
   // Dispatch Caller
   if (Object.keys(transferPayload).length > 0) {
     dispatch({ type: transferPayload.action, payload: transferPayload.payload })
@@ -130,11 +164,11 @@ export default function browser() {
   function buildNodeArray(folderArr, level = 0, parent = "") {
     for (let [i, id] of folderArr.entries()) {
       const nodeObjI = (state.allUpdates[id]) ? state.allUpdates[id] : loadedNodeObj[id];
-      const nodeItem = <Node key={`node${level}-${i}${parent}`} level={level} nodeObj={nodeObjI} nodeId={id} transferDispatch={transferDispatch} />;
-      const draggableNodeItem = createDragItem(id, nodeItem);
-      const draggableAndDroppableNodeItem = createDropTarget(id, draggableNodeItem);
-      
-      nodes.push(draggableAndDroppableNodeItem);
+      const nodeItem = <Node key={`node${level}-${i}${parent}`} level={level} nodeObj={nodeObjI} nodeId={id} transferDispatch={transferDispatch} setClearSelection={setClearSelection} />;
+      // const draggableNodeItem = createDragItem(id, nodeItem);
+      // const draggableAndDroppableNodeItem = createDropTarget(id, draggableNodeItem);
+      // nodes.push(draggableAndDroppableNodeItem);
+      nodes.push(nodeItem);
       if (nodeObjI.isOpen) {
         buildNodeArray(nodeObjI.childNodeIds, level + 1, `${parent}-${i}`)
       }
@@ -182,32 +216,62 @@ function removeTreeNodeIdsFromAllSelected({allSelected,loadedNodeObj,allUpdates,
     for (let nodeChildId of nodeObjI.childNodeIds){
       removeTreeNodeIdsFromAllSelected({allSelected,loadedNodeObj,allUpdates,nodeId:nodeChildId})
     }
-  }
+}
 
-  function selectVisibleTree({allSelected,loadedNodeObj,nodeId,newAllUpdates,startWithChildren=false}){
-    if (!startWithChildren) {allSelected.push(nodeId);}
-    const nodeObjI = (newAllUpdates[nodeId]) ? newAllUpdates[nodeId] : loadedNodeObj[nodeId];
-      if (startWithChildren || nodeObjI["appearance"] !== "selected"){
-      let newNodeObj = {...nodeObjI}
-      newNodeObj["appearance"] = "selected";
-      newAllUpdates[nodeId] = newNodeObj;
-        //if open folder and isn't already selected then select the folder's children
-        if (nodeObjI.isOpen){
-          for (let nodeChildId of nodeObjI.childNodeIds){
-            selectVisibleTree({allSelected,loadedNodeObj,nodeId:nodeChildId,newAllUpdates})
-          }
+function selectVisibleTree({allSelected,loadedNodeObj,nodeId,newAllUpdates,startWithChildren=false}){
+  if (!startWithChildren) {allSelected.push(nodeId);}
+  const nodeObjI = (newAllUpdates[nodeId]) ? newAllUpdates[nodeId] : loadedNodeObj[nodeId];
+    if (startWithChildren || nodeObjI["appearance"] !== "selected"){
+    let newNodeObj = {...nodeObjI}
+    newNodeObj["appearance"] = "selected";
+    newAllUpdates[nodeId] = newNodeObj;
+      //if open folder and isn't already selected then select the folder's children
+      if (nodeObjI.isOpen){
+        for (let nodeChildId of nodeObjI.childNodeIds){
+          selectVisibleTree({allSelected,loadedNodeObj,nodeId:nodeChildId,newAllUpdates})
         }
       }
     }
+}
 
-
+function deselectVisibleTree({allSelected,loadedNodeObj,nodeId,newAllUpdates,startWithChildren=false}){
+  console.log(">>>deselect nodeId",nodeId,"allSelected",allSelected)
+  // if (!startWithChildren) {allSelected.push(nodeId);} //need to think about this
+  const nodeObj = (newAllUpdates[nodeId]) ? newAllUpdates[nodeId] : loadedNodeObj[nodeId];
+    // if (startWithChildren || nodeObj["appearance"] !== "selected"){
+    if (nodeObj["appearance"] === "selected"){
+      allSelected.splice(allSelected.indexOf(nodeId),1); //delete nodeId from allSelected
+      let newNodeObj = {...nodeObj}
+      newNodeObj["appearance"] = "default";
+      newAllUpdates[nodeId] = newNodeObj;
+        //if open folder and isn't already selected then select the folder's children
+        if (nodeObj.isOpen){
+          for (let nodeChildId of nodeObj.childNodeIds){
+            deselectVisibleTree({allSelected,loadedNodeObj,nodeId:nodeChildId,newAllUpdates})
+          }
+        }
+    }
+  }
 
 function reducer(state, action) {
   console.log("----------REDUCER type:", action.type, "transferPayload:", action.payload)
-  const loadedNodeObj = action.payload.loadedNodeObj;
+    let loadedNodeObj = {};
+    if (action.payload){
+      loadedNodeObj = action.payload.loadedNodeObj;
+    }
   const draggedShadowId = "draggedshadow";
 
   switch (action.type) {
+    case 'CLEARALLSELECTED':{
+      let newAllUpdates = {...state.allUpdates}
+      for (let nodeId of state.allSelected){
+        const nodeObj = (state.allUpdates[nodeId]) ? state.allUpdates[nodeId] : loadedNodeObj[nodeId];
+        let newNodeObj = {...nodeObj};
+        newNodeObj.appearance = "default";
+        newAllUpdates[nodeId] = newNodeObj;
+      }
+      return {...state,allSelected:[],allUpdates:newAllUpdates}
+    }
     case 'TOGGLEFOLDER': {
       let newNodeObj = { ...action.payload.nodeObj }
       let newAllUpdates = { ...state.allUpdates };
@@ -259,30 +323,44 @@ function reducer(state, action) {
 
       if (!metakey && !shiftKey) {
         //No shift or control 
-        //Deselect all selected nodes
-        newAllSelected = [];
-        for (let selectedNodeId of state.allSelected){
-          const nodeObj = (state.allUpdates[selectedNodeId]) ? state.allUpdates[selectedNodeId] : loadedNodeObj[selectedNodeId];
-          let selectedNodeObj = {...nodeObj}
-          selectedNodeObj["appearance"] = "default";
-          newAllUpdates[selectedNodeId] = selectedNodeObj;
+        //If clicked node isn't selected
+        //then Deselect all selected nodes 
+        //and select clicked node's tree which wasn't selected
+        const nodeObj = (state.allUpdates[action.payload.nodeId]) ? state.allUpdates[action.payload.nodeId] : loadedNodeObj[action.payload.nodeId];
+        
+        if (nodeObj.appearance !== "selected"){
+          newAllSelected = [];
+        
+          for (let selectedNodeId of state.allSelected){
+            const nodeObj = (state.allUpdates[selectedNodeId]) ? state.allUpdates[selectedNodeId] : loadedNodeObj[selectedNodeId];
+            let selectedNodeObj = {...nodeObj}
+            selectedNodeObj["appearance"] = "default";
+            newAllUpdates[selectedNodeId] = selectedNodeObj;
+          }
+          
+          //select all visible downstream in the tree 
+            selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:action.payload.nodeId,newAllUpdates})
         }
 
-        //If selecting node then select all in tree 
-        //if deselecting then we are done already
-        // const nodeObj = (state.allUpdates[action.payload.nodeId]) ? state.allUpdates[action.payload.nodeId] : loadedNodeObj[action.payload.nodeId];
-        if (action.payload.nodeObj.appearance !== "selected"){
-          selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:action.payload.nodeId,newAllUpdates})
-        }
       
       } else if (metakey && !shiftKey) {
         //Control so add this tree to the selection
-        if (action.payload.nodeObj.appearance !== "selected"){
+        if (action.payload.nodeObj.appearance === "selected"){
+          //If parent is selected then don't deselect visible tree
+          const nodeObj = (state.allUpdates[action.payload.nodeId]) ? state.allUpdates[action.payload.nodeId] : loadedNodeObj[action.payload.nodeId];
+          const parentNodeObj = (state.allUpdates[nodeObj.parentId]) ? state.allUpdates[nodeObj.parentId] : loadedNodeObj[nodeObj.parentId];
+          if (parentNodeObj.appearance === undefined || parentNodeObj.appearance !== "selected"){
+            //Deselect tree 
+            deselectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:action.payload.nodeId,newAllUpdates})
+          }
+        
+        }else{
+          //Select Node and all visible children 
           selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:action.payload.nodeId,newAllUpdates})
         }
       
       } else if (!metakey && shiftKey) {
-        //Shift is down so add a whole range of items
+        //Shift is down so add selection to the range of items
         let lastNodeIdSelected = state.allSelected[state.allSelected.length - 1];
         if (lastNodeIdSelected !== undefined) {
         // newNodeObj["appearance"] = "selected";
@@ -550,6 +628,7 @@ function reducer(state, action) {
 
 //appearance 'default','selected','inactive','dropperview'
 const Node = React.memo(function Node(props) {
+
   console.log("Node", props)
   let numChildren = 0;
   if (props.nodeObj && props.nodeObj.childNodeIds && props.nodeObj.childNodeIds.length){
@@ -582,9 +661,17 @@ const Node = React.memo(function Node(props) {
   let bgcolor = "#e2e2e2";
   if (props.nodeObj.appearance === "selected") { bgcolor = "#6de5ff"; }
   if (props.nodeObj.appearance === "dropperview") { bgcolor = "#53ff47"; }
-  return <div onClick={(e) => {
+  return <div tabIndex={0} 
+  onClick={(e) => {
     props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
-  }} style={{
+  }} 
+
+  onBlur={(e) => {
+    if (e.relatedTarget === null){
+      props.setClearSelection(true);
+    }
+  }}
+  style={{
     width: "300px",
     padding: "4px",
     border: "1px solid black",
