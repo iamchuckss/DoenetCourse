@@ -284,26 +284,8 @@ function reducer(state, action) {
         selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:action.payload.nodeId,newAllUpdates,startWithChildren:true})
       }
 
-      // If closing a folder, deselect itself and children
-      if (!newNodeObj["isOpen"]) {
-        let processQueue = [action.payload.nodeId];
 
-        while (processQueue.length != 0) {
-          const currentNodeObjId = processQueue.pop();
-          const currentNodeObj = (newAllUpdates[currentNodeObjId]) ? newAllUpdates[currentNodeObjId] : loadedNodeObj[currentNodeObjId];          
-          // deselect current node
-          currentNodeObj["appearance"] = "default";
-          newAllUpdates[currentNodeObjId] = currentNodeObj;
-          newAllSelected = newAllSelected.splice(newAllSelected.indexOf(currentNodeObjId), 1);
-
-          for (let childNodeObjId of currentNodeObj.childNodeIds) {
-            processQueue.push(childNodeObjId);
-          }
-        }
-      }
-
-      let nodeIdsArr = [];
-      return { ...state, allUpdates:newAllUpdates,nodeIdsArr,allSelected:newAllSelected };
+      return { ...state, allUpdates:newAllUpdates,allSelected:newAllSelected };
     }
     case 'CLICKITEM': {
       const metakey = action.payload.metaKey;
@@ -666,7 +648,11 @@ const Node = React.memo(function Node(props) {
     props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
   }} 
 
+  onDoubleClick={(e) => {
+    props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj })
+  }} 
   onBlur={(e) => {
+    console.log(">>>e.relatedTarget",e.relatedTarget)
     if (e.relatedTarget === null){
       props.setClearSelection(true);
     }
