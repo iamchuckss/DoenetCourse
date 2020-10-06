@@ -3,14 +3,13 @@ import View from "./view";
 
 import useDrop from "./useDrop";
 
-const WithDropTarget = ({ children, heading, id, onDrop, onDropEnter, onDropExit, className }) => {
+const WithDropTarget = ({ children, heading, id, onDrop, onDropEnter, onDropLeave, className }) => {
   const dropRef = useRef();
   const { dropState } = useDrop({
     ref: dropRef,
     onDropEnter: () => onDropEnter(id),
     onDrop: onDrop,
-    // onDropLeave: () => { onDropleave && onDropLeave(id)},
-    onDropExit: onDropExit
+    onDropLeave: () => { onDropLeave(id)},
   });
   return (
     <View ref={dropRef} heading={heading} classes={className}>

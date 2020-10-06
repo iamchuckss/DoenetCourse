@@ -76,13 +76,6 @@ export default function browser() {
   const transferDispatch = useCallback((action, payload) => { payload['loadedNodeObj'] = loadedNodeObj; setTransferPayload({ action, payload }) }, []);
 
   const createDropTarget = (id, element) => {
-    const onDropEnter = () => {
-      const dropTargetObj = { ...state.allUpdates[id] ? state.allUpdates[id] : loadedNodeObj[id] };
-      if (!dropTargetObj.isOpen) {
-        transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dropTargetObj })
-      }      
-      transferDispatch("DROPENTER", {dropTargetId: id});
-    } 
     
     const onDrop = () => {
       transferDispatch("DROP", {dropTargetId: id});
@@ -112,7 +105,7 @@ export default function browser() {
 
     const onDragEnd = () => {
       console.log("dispatch dragEnd event: ", id)
-      // transferDispatch("DRAGEND", {});
+      transferDispatch("DRAGEND", {});
     }
 
     return (
@@ -361,61 +354,6 @@ function reducer(state, action) {
 
       return { ...state, draggedItemData: draggedItemData, allUpdates: newAllUpdates }
     }
-    case 'DRAGEND': { 
-      return { ...state, draggedItemData: null}
-    }
-    case 'DROPENTER': { 
-
-      const { id, previousParentId, sourceParentId } = { ...state.draggedItemData };
-      const dragItemId = id;
-      const dropTargetId = action.payload.dropTargetId;
-      
-      // move draggedItem to dropTarget
-      const newAllUpdates = { ...state.allUpdates }
-      const previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
-      const newParentNode = { ...newAllUpdates[dropTargetId] ? newAllUpdates[dropTargetId] : loadedNodeObj[dropTargetId]};
-      
-      if (previousParentId == dropTargetId) { // prevent dropping into the same parent 
-        return { ...state };
-      }
-
-      let previousList = [...previousParentNode.childNodeIds];
-      let currentList = [...newParentNode.childNodeIds];
-
-      // remove from previous list, delete from newAllUpdates
-      if (previousParentId !== sourceParentId) {
-        const indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
-        if (indexInList > -1) {
-          previousList.splice(indexInList, 1);
-        }
-        if (newAllUpdates[draggedShadowId]) {
-          delete newAllUpdates[draggedShadowId];
-        }
-      }
-      if (dropTargetId !== sourceParentId && dropTargetId !== state.draggedItemData.id) {
-        // add to current list
-        const draggedShadowNodeObj = {
-          label: "SHADOW",
-          childNodeIds: [],
-          isOpen: false,
-          appearance: "dropperview",
-          parentId: dropTargetId,
-        }
-        newAllUpdates[draggedShadowId] = draggedShadowNodeObj;
-        currentList.push(draggedShadowId);
-      }
-      
-      previousParentNode.childNodeIds = previousList;
-      newAllUpdates[previousParentId] = previousParentNode;
-      newParentNode.childNodeIds = currentList;
-      newAllUpdates[dropTargetId] = newParentNode;
-            
-      const updatedDraggedItemData = { ...state.draggedItemData };
-      updatedDraggedItemData.previousParentId = dropTargetId !== dragItemId ? dropTargetId : sourceParentId;
-      let nodeIdsArr = [];
-      
-      return { ...state, nodeIdsArr, draggedItemData: updatedDraggedItemData, allUpdates: newAllUpdates }
-    }
     case 'DRAGOVER': { 
       const { previousParentId } = { ...state.draggedItemData };
       const dropTargetId = action.payload.dropTargetId;
@@ -480,17 +418,9 @@ function reducer(state, action) {
       const { id, previousParentId, sourceParentId } = { ...state.draggedItemData };
 
       const newAllUpdates = { ...state.allUpdates }
-      // item moved out of original parent
-      if (previousParentId !== sourceParentId) {
-        const previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
-        let previousList = [...previousParentNode.childNodeIds];
-        
-        // replace shadow in previousParentId with draggedItem
-        let indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
-        if (indexInList > -1) {
-          previousList[indexInList] = id;
-        }
-        
+
+      // item moved out of original parent or order changed
+      if (newAllUpdates[draggedShadowId]) {
         // remove draggedItem from sourceParentId
         const sourceParentNode = { ...newAllUpdates[sourceParentId] ? newAllUpdates[sourceParentId] : loadedNodeObj[sourceParentId]};
         let sourceParentList = [...sourceParentNode.childNodeIds];
@@ -499,14 +429,38 @@ function reducer(state, action) {
           sourceParentList.splice(indexInList, 1);
         }
 
-        newAllUpdates[id].parentId = previousParentId;
-        newAllUpdates[previousParentId].childNodeIds = previousList;
         newAllUpdates[sourceParentId].childNodeIds = sourceParentList;
       }
+      
+      // move draggedItemData.id into previousParentId
+      const previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
+      let previousList = [...previousParentNode.childNodeIds];
+      
+      // replace shadow in previousParentId with draggedItem
+      let indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
+      if (indexInList > -1) {
+        previousList[indexInList] = id;
+      }
+
+      previousParentNode.childNodeIds = previousList;
+      newAllUpdates[id].parentId = previousParentId;
+      newAllUpdates[previousParentId] = previousParentNode;
+
+      return { ...state, allUpdates: newAllUpdates };
+    }
+    case 'DRAGEND': { 
+      const newAllUpdates = { ...state.allUpdates }
+      
+      const draggedNode = { ...newAllUpdates[state.draggedItemData.id] ? newAllUpdates[state.draggedItemData.id] : loadedNodeObj[state.draggedItemData.id]};
+      draggedNode.appearance = "default";
+      newAllUpdates[state.draggedItemData.id] = draggedNode;
+
       if (newAllUpdates[draggedShadowId]) {
         delete newAllUpdates[draggedShadowId];
       }
-      return { ...state, draggedItemData: null, allUpdates: newAllUpdates };
+      console.log("HERE dragend")
+
+      return { ...state, draggedItemData: null, allUpdates: newAllUpdates }
     }
     default:
       throw new Error(`Unhandled type in reducer ${action, action.type}`);
