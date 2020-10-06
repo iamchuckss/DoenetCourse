@@ -4,7 +4,6 @@ import nanoid from 'nanoid';
 import WithDropTarget from "../imports/dropTarget";
 import WithDragItem from "../imports/dragItem";
 
-
 //Simple folder contents
 export default function browser() {
   console.log("=======START OF BROWSER")
@@ -197,6 +196,7 @@ export default function browser() {
     dispatch({ type: "ADDNODES",payload:{loadedNodeObj,nodes:[nodeObj]}})
       }}>Add Folder</button>
     <h1>Folders</h1>
+    <input type="text" placeholder="focus tester"></input>
     {nodes}
   </>
 }
@@ -643,7 +643,13 @@ const Node = React.memo(function Node(props) {
   let bgcolor = "#e2e2e2";
   if (props.nodeObj.appearance === "selected") { bgcolor = "#6de5ff"; }
   if (props.nodeObj.appearance === "dropperview") { bgcolor = "#53ff47"; }
-  return <div tabIndex={0} 
+
+  
+
+  return <div 
+  // data-doenet-nodeGroupId={props.nodeGroupId}
+  data-doenet-nodegroupid={"1234x"}
+  tabIndex={0} 
   onClick={(e) => {
     props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
   }} 
@@ -652,10 +658,18 @@ const Node = React.memo(function Node(props) {
     props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj })
   }} 
   onBlur={(e) => {
-    console.log(">>>e.relatedTarget",e.relatedTarget)
-    if (e.relatedTarget === null){
+    //DELETE THIS IF
+    if (e.relatedTarget){
+      console.log(">>>doenetNodegroupid",e.relatedTarget.dataset.doenetNodegroupid)
+    }
+
+    //Only clear if focus goes outside of this node group
+     if (e.relatedTarget === null){
+       props.setClearSelection(true);
+     }else if(e.relatedTarget.dataset.doenetNodegroupid !== "1234x"){
       props.setClearSelection(true);
     }
+ 
   }}
   style={{
     width: "300px",
