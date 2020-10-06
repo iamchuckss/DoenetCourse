@@ -354,8 +354,12 @@ function reducer(state, action) {
         previousParentId: draggedObject.parentId,
         sourceParentId: draggedObject.parentId,
       }
-      
-      return { ...state, draggedItemData: draggedItemData }
+      const newAllUpdates = { ...state.allUpdates }
+      const draggedNode = { ...newAllUpdates[id] ? newAllUpdates[id] : loadedNodeObj[id]};
+      draggedNode.appearance = "dragged";
+      newAllUpdates[id] = draggedNode;
+
+      return { ...state, draggedItemData: draggedItemData, allUpdates: newAllUpdates }
     }
     case 'DRAGEND': { 
       return { ...state, draggedItemData: null}
@@ -548,7 +552,7 @@ function reducer(state, action) {
   }
 }
 
-//appearance 'default','selected','inactive','dropperview'
+//appearance 'default','selected','inactive','dropperview', 'dragged'
 const Node = React.memo(function Node(props) {
   console.log("Node", props)
   let numChildren = 0;
@@ -582,6 +586,7 @@ const Node = React.memo(function Node(props) {
   let bgcolor = "#e2e2e2";
   if (props.nodeObj.appearance === "selected") { bgcolor = "#6de5ff"; }
   if (props.nodeObj.appearance === "dropperview") { bgcolor = "#53ff47"; }
+  if (props.nodeObj.appearance === "dragged") { bgcolor = "#f3ff35"; }
   return <div onClick={(e) => {
     props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
   }} style={{
