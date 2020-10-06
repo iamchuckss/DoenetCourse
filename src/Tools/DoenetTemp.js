@@ -63,7 +63,6 @@ export default function browser() {
     nodeIdsArr: [], 
     draggedItemData: { id: null, previousParentId: null, sourceParentId: null },
     validDrop: false,
-    nodeObjCache: {}
   }
   const [state, dispatch] = useReducer(reducer, initialState);
   console.log("\n###BASESTATE", state)
@@ -81,8 +80,18 @@ export default function browser() {
       transferDispatch("DROP", {dropTargetId: id});
     }
 
+    const onDropLeave = (id) => {      
+      const dropTargetObj = { ...state.allUpdates[id] ? state.allUpdates[id] : loadedNodeObj[id] };
+      
+      // if dragged item does not belong to drop target, toggle close
+      if (state.draggedItemData.sourceParentId != id && dropTargetObj.isOpen) {
+        console.log("DRAGLEAVE fired")
+        // transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dropTargetObj })
+      }
+    }
+
     return (
-      <WithDropTarget id={id} key={`droptarget-${id}`} onDrop={onDrop}>
+      <WithDropTarget id={id} key={`droptarget-${id}`} onDrop={onDrop} onDropLeave={onDropLeave}>
         { element }
       </WithDropTarget>
     )
@@ -376,7 +385,6 @@ function reducer(state, action) {
         }
         return { ...state, allUpdates: newAllUpdates };
       }
-      
 
       const dropTargetNode = { ...newAllUpdates[dropTargetId] ? newAllUpdates[dropTargetId] : loadedNodeObj[dropTargetId]};
       const dropTargetParentNode = { ...newAllUpdates[dropTargetNode.parentId] ? newAllUpdates[dropTargetNode.parentId] : loadedNodeObj[dropTargetNode.parentId]};
@@ -414,6 +422,10 @@ function reducer(state, action) {
       
       return { ...state, draggedItemData: updatedDraggedItemData, allUpdates: newAllUpdates }
     }
+    case 'DROPLEAVE': {      
+
+      return { ...state }
+    }
     case 'DROP': { 
       const { id, previousParentId, sourceParentId } = { ...state.draggedItemData };
 
@@ -446,7 +458,7 @@ function reducer(state, action) {
       newAllUpdates[id].parentId = previousParentId;
       newAllUpdates[previousParentId] = previousParentNode;
 
-      return { ...state, allUpdates: newAllUpdates };
+      return { ...state, allUpdates: newAllUpdates, validDrop: true };
     }
     case 'DRAGEND': { 
       const newAllUpdates = { ...state.allUpdates }
@@ -456,11 +468,24 @@ function reducer(state, action) {
       newAllUpdates[state.draggedItemData.id] = draggedNode;
 
       if (newAllUpdates[draggedShadowId]) {
+        // cleanup shadow
+        // move draggedItemData.id into previousParentId
+        const { previousParentId } = state.draggedItemData;
+        const previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
+        let previousList = [...previousParentNode.childNodeIds];
+        
+        // replace shadow in previousParentId with draggedItem
+        let indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
+        if (indexInList > -1) {
+          previousList.splice(indexInList, 1);
+        }
+        previousParentNode.childNodeIds = previousList;
+        newAllUpdates[previousParentId] = previousParentNode;
+
         delete newAllUpdates[draggedShadowId];
       }
-      console.log("HERE dragend")
 
-      return { ...state, draggedItemData: null, allUpdates: newAllUpdates }
+      return { ...state, draggedItemData: null, allUpdates: newAllUpdates, validDrop: false }
     }
     default:
       throw new Error(`Unhandled type in reducer ${action, action.type}`);
