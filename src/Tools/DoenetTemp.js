@@ -163,6 +163,12 @@ export default function browser() {
     )
   }
 
+  const createDnDItem = (id, element) => {
+    const draggableNodeItem = createDragItem(id, element);
+    const draggableAndDroppableNodeItem = createDropTarget(id, draggableNodeItem);
+    return draggableAndDroppableNodeItem;
+  }
+
   let nodes = [];  
   
   const latestRootFolders = ((state.allUpdates['root']) ? state.allUpdates['root'] : loadedNodeObj['root']).childNodeIds;
@@ -172,8 +178,7 @@ export default function browser() {
     for (let [i, id] of folderArr.entries()) {
       const nodeObjI = (state.allUpdates[id]) ? state.allUpdates[id] : loadedNodeObj[id];
       const nodeItem = <Node key={`node${level}-${i}${parent}`} level={level} nodeObj={nodeObjI} nodeId={id} transferDispatch={transferDispatch} setClearSelection={setClearSelection} />;
-      const draggableNodeItem = createDragItem(id, nodeItem);
-      const draggableAndDroppableNodeItem = createDropTarget(id, draggableNodeItem);
+      const draggableAndDroppableNodeItem = createDnDItem(id, nodeItem);
       nodes.push(draggableAndDroppableNodeItem);
       
       if (nodeObjI.isOpen) {
