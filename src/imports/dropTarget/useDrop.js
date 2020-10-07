@@ -35,7 +35,7 @@ const useDrop = ({ ref, onDrop, onDropLeave, onDropEnter }) => {
     const elem = ref.current;
     if (elem) {
       elem.addEventListener("dragenter", dropEnterCb);
-      elem.addEventListener("dragleave", dropLeaveCb);
+      // elem.addEventListener("dragleave", dropLeaveCb);
       elem.addEventListener("drop", dropCb);
       elem.addEventListener("dragover", onDragOver);
       return () => {

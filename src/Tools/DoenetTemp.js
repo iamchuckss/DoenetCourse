@@ -449,9 +449,14 @@ function reducer(state, action) {
       const newAllUpdates = { ...state.allUpdates }
       const previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
       let previousList = [...previousParentNode.childNodeIds];
+      const dropTargetNode = { ...newAllUpdates[dropTargetId] ? newAllUpdates[dropTargetId] : loadedNodeObj[dropTargetId]};
+      const dropTargetParentNode = { ...newAllUpdates[dropTargetNode.parentId] ? newAllUpdates[dropTargetNode.parentId] : loadedNodeObj[dropTargetNode.parentId]};
 
-      // if the item is dragged over itself, remove any shadow then return
-      if (state.draggedItemData.id == dropTargetId || dropTargetId == draggedShadowId) {
+      const isDraggedOverSelf = state.draggedItemData.id == dropTargetId || dropTargetId == draggedShadowId;
+      const isDraggedOverChild = dropTargetNode.parentId == state.draggedItemData.id;
+
+      // if the item is dragged over itself or any children, remove any shadow then return
+      if (isDraggedOverSelf || isDraggedOverChild) {
         if (state.draggedItemData.id == dropTargetId && newAllUpdates[draggedShadowId]) {
           const indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
           if (indexInList > -1) {
@@ -464,8 +469,6 @@ function reducer(state, action) {
         return { ...state, allUpdates: newAllUpdates };
       }
 
-      const dropTargetNode = { ...newAllUpdates[dropTargetId] ? newAllUpdates[dropTargetId] : loadedNodeObj[dropTargetId]};
-      const dropTargetParentNode = { ...newAllUpdates[dropTargetNode.parentId] ? newAllUpdates[dropTargetNode.parentId] : loadedNodeObj[dropTargetNode.parentId]};
       let dropTargetParentChildList = [...dropTargetParentNode.childNodeIds];      
 
       // if dragged into another parent / initial drag
