@@ -133,14 +133,19 @@ export default function browser() {
 
   const createDragItem = (id, element) => {
     const onDragStart = () => {
-      console.log("dispatch dragStart event: ", id)
+      const dragItemObj = { ...state.allUpdates[id] ? state.allUpdates[id] : loadedNodeObj[id] };
+      if (dragItemObj.isOpen) {
+        // close dragItem if open
+        transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dragItemObj })
+      }      
       transferDispatch("DRAGSTART", { dragItemId: id });
     } 
     
     const onDragOver = (ev, id) => {
       console.log("dispatch dragged over event: ", id)
       const dropTargetObj = { ...state.allUpdates[id] ? state.allUpdates[id] : loadedNodeObj[id] };
-      if (!dropTargetObj.isOpen) {
+      const isDraggedOverSelf = state.draggedItemData.id == id;
+      if (!dropTargetObj.isOpen && !isDraggedOverSelf) {
         transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dropTargetObj })
       }      
       transferDispatch("DRAGOVER", {dropTargetId: id, ev: ev});
