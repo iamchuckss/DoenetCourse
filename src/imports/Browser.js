@@ -5,11 +5,11 @@ import WithDropTarget from "./dropTarget";
 import WithDragItem from "./dragItem";
 
 
-export default function Browser() {
+export default function Browser(props) {
   const [browserId,setBrowserId] = useState("");
   useEffect(()=>{
-    const id = nanoid();
-    setBrowserId(id);
+    const browserid = nanoid();
+    setBrowserId(browserid);
   },[]);
   console.log("=======START OF BROWSER",browserId)
 
@@ -189,7 +189,10 @@ export default function Browser() {
 
   return <>
   
-    <button onClick={()=>{
+    <button 
+    data-doenet-browserid={browserId}
+    onMouseDown={e=>{ e.preventDefault(); }}
+    onClick={()=>{
       let node = {
         label: "Untitled folder",
         childNodeIds: [],
@@ -223,19 +226,44 @@ function removeTreeNodeIdsFromAllSelected({allSelected,loadedNodeObj,allUpdates,
 }
 
 function selectVisibleTree({allSelected,loadedNodeObj,nodeId,newAllUpdates,startWithChildren=false}){
-  if (!startWithChildren) {allSelected.push(nodeId);}
-  const nodeObjI = (newAllUpdates[nodeId]) ? newAllUpdates[nodeId] : loadedNodeObj[nodeId];
-    if (startWithChildren || nodeObjI["appearance"] !== "selected"){
-    let newNodeObj = {...nodeObjI}
+  let visibleChildren = visibleChildNodeIds({loadedNodeObj,nodeId,newAllUpdates});
+  if (startWithChildren) {
+    visibleChildren.shift();
+  } 
+  for (let nodeId of visibleChildren){
+    const nodeObj = (newAllUpdates[nodeId]) ? newAllUpdates[nodeId] : loadedNodeObj[nodeId];
+    let newNodeObj = {...nodeObj}
     newNodeObj["appearance"] = "selected";
     newAllUpdates[nodeId] = newNodeObj;
-      //if open folder and isn't already selected then select the folder's children
-      if (nodeObjI.isOpen){
-        for (let nodeChildId of nodeObjI.childNodeIds){
-          selectVisibleTree({allSelected,loadedNodeObj,nodeId:nodeChildId,newAllUpdates})
-        }
-      }
+    allSelected.push(nodeId);
+  }
+  // allSelected = allSelected.concat(visibleChildren)
+  console.log(">>>visibleChildren",visibleChildren)
+  console.log(">>>allSelected",allSelected)
+  // if (!startWithChildren) {allSelected.push(nodeId);}
+  // const nodeObj = (newAllUpdates[nodeId]) ? newAllUpdates[nodeId] : loadedNodeObj[nodeId];
+  //   if (startWithChildren || nodeObj["appearance"] !== "selected"){
+  //   let newNodeObj = {...nodeObj}
+  //   newNodeObj["appearance"] = "selected";
+  //   newAllUpdates[nodeId] = newNodeObj;
+  //     //if open folder and isn't already selected then select the folder's children
+  //     if (nodeObj.isOpen){
+  //       for (let nodeChildId of nodeObj.childNodeIds){
+  //         selectVisibleTree({allSelected,loadedNodeObj,nodeId:nodeChildId,newAllUpdates})
+  //       }
+  //     }
+  //   }
+}
+
+function visibleChildNodeIds({loadedNodeObj,nodeId,newAllUpdates,previousNodeIds=[]}){
+  previousNodeIds.unshift(nodeId)
+  const nodeObj = (newAllUpdates[nodeId]) ? newAllUpdates[nodeId] : loadedNodeObj[nodeId];
+  if (nodeObj.isOpen){
+    for (let nodeChildId of nodeObj.childNodeIds){
+    visibleChildNodeIds({loadedNodeObj,nodeId:nodeChildId,newAllUpdates,previousNodeIds})
     }
+  }
+  return previousNodeIds;
 }
 
 function deselectVisibleTree({allSelected,loadedNodeObj,nodeId,newAllUpdates,startWithChildren=false}){
@@ -380,17 +408,25 @@ function reducer(state, action) {
     case 'ADDNODES': {
       let newAllUpdates = {...state.allUpdates}
       let nodeParentId = state.allSelected[state.allSelected.length - 1];
+      let newAllSelected = [...state.allSelected]
         if (nodeParentId === undefined) { nodeParentId = 'root'; } //No selections add to root
       let newNodeParent = {...(newAllUpdates[nodeParentId]) ? newAllUpdates[nodeParentId] : loadedNodeObj[nodeParentId]};
+
+
       for (let nodeObj of action.payload.nodes) {
-        let nodeId = Object.keys(nodeObj)[0];
+        let nodeId = Object.keys(nodeObj)[0]; //There is only one key
         newNodeParent.childNodeIds.push(nodeId)
         nodeObj[nodeId]["parentId"] = nodeParentId;
+        //if parent is selected, select node
+        if (newNodeParent.appearance === "selected"){
+          nodeObj[nodeId]["appearance"] = "selected";
+          newAllSelected.unshift(nodeId)
+        }
         newAllUpdates[nodeId] = {...nodeObj[nodeId]};
       }
       newAllUpdates[nodeParentId] = newNodeParent;
       let nodeIdsArr = [];
-      return { ...state,nodeIdsArr,allUpdates:newAllUpdates}
+      return { ...state,nodeIdsArr,allUpdates:newAllUpdates,allSelected:newAllSelected}
     }
     case 'DELETENODES': {
       //Find parent and splice out of array of children
@@ -631,14 +667,22 @@ const Node = React.memo(function Node(props) {
       margin: "2px"
     }} ><div className="noselect" style={{ textAlign: "center" }} >EMPTY</div></div>
   }
-  const deleteNode = <button onClick={(e) => {
+  const deleteNode = <button 
+  onMouseDown={e=>{ e.preventDefault(); }}
+  data-doenet-browserid={props.browserId}
+  tabIndex={-1}
+  onClick={(e) => {
     e.preventDefault();
     e.stopPropagation();
     props.transferDispatch('DELETENODES', { nodeId: props.nodeId, nodeObj: props.nodeObj })
     // props.actions().toggleFolder(props.nodeId,props.nodeObj);
   }}>X</button>
   const toggleLabel = (props.nodeObj.isOpen) ? "Close" : "Open";
-  const toggle = <button onClick={(e) => {
+  const toggle = <button 
+  onMouseDown={e=>{ e.preventDefault(); }}
+  data-doenet-browserid={props.browserId}
+  tabIndex={-1}
+  onClick={(e) => {
     e.preventDefault();
     e.stopPropagation();
     props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj })
@@ -650,10 +694,11 @@ const Node = React.memo(function Node(props) {
 
   
 
+  // let tabindex = 0;
+  // if (props.nodeObj.appearance === "selected") { tabindex = -1 }
   return <div 
-  // data-doenet-nodeGroupId={props.nodeGroupId}
-  data-doenet-nodegroupid={props.browserId}
-  tabIndex={0} 
+  data-doenet-browserid={props.browserId}
+  tabIndex={-1} 
   onClick={(e) => {
     props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
   }} 
@@ -661,16 +706,27 @@ const Node = React.memo(function Node(props) {
   onDoubleClick={(e) => {
     props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj })
   }} 
+  // onFocus={(e)=>{
+  //   console.log(">>>>>>>>>>>>>>")
+  //   console.log(">>>>>>>>>>>>>>")
+  //   console.log(">>>FOCUS",props.nodeId)
+  //   console.log(">>>>>>>>>>>>>>")
+  //   console.log(">>>>>>>>>>>>>>")
+    
+  //   props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
+
+  // }}
+ 
   onBlur={(e) => {
     //DELETE THIS IF
     if (e.relatedTarget){
-      console.log(">>>doenetNodegroupid",e.relatedTarget.dataset.doenetNodegroupid)
+      console.log(">>>doenetBrowserid",e.relatedTarget.dataset.doenetBrowserid)
     }
 
     //Only clear if focus goes outside of this node group
      if (e.relatedTarget === null){
        props.setClearSelection(true);
-     }else if(e.relatedTarget.dataset.doenetNodegroupid !== props.browserId){
+     }else if(e.relatedTarget.dataset.doenetBrowserid !== props.browserId){
       props.setClearSelection(true);
     }
  
@@ -681,7 +737,9 @@ const Node = React.memo(function Node(props) {
     border: "1px solid black",
     backgroundColor: bgcolor,
     margin: "2px"
-  }} ><div className="noselect" style={{
+  }} ><div 
+  className="noselect" 
+  style={{
     marginLeft: `${props.level * indentPx}px`
   }}>{toggle} [icon] {props.nodeObj.label} ({numChildren}){deleteNode}</div></div>
 })
