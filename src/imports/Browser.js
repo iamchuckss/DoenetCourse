@@ -128,12 +128,30 @@ export default function Browser(props) {
 
   const createDragItem = (id, element) => {
     const onDragStart = () => {
-      const dragItemObj = { ...state.allUpdates[id] ? state.allUpdates[id] : loadedNodeObj[id] };
-      if (dragItemObj.isOpen) {
-        // close dragItem if open
-        transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dragItemObj })
-      }      
-      transferDispatch("DRAGSTART", { dragItemId: id });
+      let draggedItemIds = new Set(state.allSelected);
+      
+      // remove items at lower hierarchy in selected items
+      let processQueue = [ ...state.allSelected ];
+      while (processQueue.length != 0) {
+        const currentNodeObjId = processQueue.pop();
+        const currentNodeObj = (state.allUpdates[currentNodeObjId]) ? state.allUpdates[currentNodeObjId] : loadedNodeObj[currentNodeObjId];          
+        for (let childNodeObjId of currentNodeObj.childNodeIds) {
+          if (draggedItemIds.has(childNodeObjId)) {
+            draggedItemIds.delete(childNodeObjId);
+            processQueue = processQueue.splice(processQueue.findIndex(id => id == childNodeObjId), 1);
+          } else {
+            processQueue.push(childNodeObjId);
+          }          
+        }
+      }
+      draggedItemIds = [ ...draggedItemIds ];
+
+      // let dragItemObj = state.allUpdates[currentNodeObjId] ? state.allUpdates[currentNodeObjId] : loadedNodeObj[currentNodeObjId];
+      // if (dragItemObj.isOpen) {
+      //   // close dragItem if open
+      //   transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dragItemObj })
+      // }      
+      // transferDispatch("DRAGSTART", { dragItemId: id });
     } 
     
     const onDragOver = (ev, id) => {
@@ -450,8 +468,15 @@ function reducer(state, action) {
       return { ...state,nodeIdsArr,allUpdates:newAllUpdates,allSelected:newAllSelected,mode }
     }
     case 'DRAGSTART': { 
+
+
+
       const id = action.payload.dragItemId;
       const draggedObject = { ...state.allUpdates[id] ? state.allUpdates[id] : loadedNodeObj[id] };
+
+
+
+
       const draggedItemData = {
         id: id,
         previousParentId: draggedObject.parentId,
