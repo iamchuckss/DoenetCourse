@@ -17,10 +17,6 @@ const useDrop = ({ ref, onDrop, onDropLeave, onDropEnter }) => {
   };
 
   const dropEnterCb = ev => {
-    console.log("HERE", ev.currentTarget.getBoundingClientRect());
-    console.log("HERE", ev.clientX);
-    // compare topLeft X of moved block  to dropTarget topLeftX (compute from layer)
-
     onDropEnter && onDropEnter();
     ev.preventDefault();
     ev.stopPropagation();
