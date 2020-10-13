@@ -15,7 +15,7 @@ export default function Browser(props) {
 
   const [loadedNodeObj, setLoadedNodeObj] = useState(
     {
-      'root': {childNodeIds:['rf1', 'rf2']},
+      'root': {childNodeIds:['rf1', 'rf2','rr1']},
       'rf1': {
         label: "root folder",
         childNodeIds: ['f1', 'f3', 'f4'],
@@ -31,6 +31,14 @@ export default function Browser(props) {
         appearance: "default",
         parentId: "root",
         type: "folder",
+      },
+      'rr1': {
+        label: "root repo 1",
+        childNodeIds: ['a1','a2'],
+        isOpen: true,
+        appearance: "default",
+        parentId: "root",
+        type: "repo",
       },
       'f1': {
         label: "folder one",
@@ -66,8 +74,8 @@ export default function Browser(props) {
       },
       'f5': {
         label: "folder 5",
-        childNodeIds: ['u1','u2','u3'],
-        isOpen: true, 
+        childNodeIds: ['u1','u2','u3','d1','d2'],
+        isOpen: false, 
         appearance: "default",
         parentId: "rf2",
         type: "folder",
@@ -92,6 +100,40 @@ export default function Browser(props) {
         parentId: "f5",
         type: "url",
         url: "http://www.yahoo.com",
+      },
+      'a1': {
+        label: "Assignment 1",
+        appearance: "default",
+        parentId: "f5",
+        type: "assignment",
+        assignmentId: "a1assignmentId",
+        contentId: "a1contentId",
+        branchId: "a1branchId",
+      },
+      'a2': {
+        label: "Assignment 2",
+        appearance: "default",
+        parentId: "f5",
+        type: "assignment",
+        assignmentId: "a2assignmentId",
+        contentId: "a2contentId",
+        branchId: "a2branchId",
+      },
+      'd1': {
+        label: "Pendulum",
+        appearance: "default",
+        parentId: "f5",
+        type: "doenetML",
+        contentId: "d1contentId",
+        branchId: "d1branchId",
+      },
+      'd2': {
+        label: "1+1 is?",
+        appearance: "default",
+        parentId: "f5",
+        type: "doenetML",
+        contentId: "d2contentId",
+        branchId: "d2branchId",
       },
     })
  
@@ -197,7 +239,7 @@ export default function Browser(props) {
       const draggableAndDroppableNodeItem = createDnDItem(id, nodeItem);
       nodes.push(draggableAndDroppableNodeItem);
       // nodes.push(nodeItem);
-      if (nodeObjI.type === "folder" && nodeObjI.isOpen) {
+      if ((nodeObjI.type === "folder" || nodeObjI.type === "repo") && nodeObjI.isOpen) {
         buildNodeArray(nodeObjI.childNodeIds, level + 1, `${parent}-${i}`)
       }
     }
@@ -214,6 +256,7 @@ export default function Browser(props) {
   
     <button 
     data-doenet-browserid={browserId}
+    tabIndex={-1}
     onMouseDown={e=>{ e.preventDefault(); }}
     onClick={()=>{
       let node = {
@@ -230,6 +273,7 @@ export default function Browser(props) {
       }}>Add Folder</button>
        <button 
     data-doenet-browserid={browserId}
+    tabIndex={-1}
     onMouseDown={e=>{ e.preventDefault(); }}
     onClick={()=>{
       let node = {
@@ -249,18 +293,18 @@ export default function Browser(props) {
 
 function buildNodeIdArray({loadedNodeObj={},folderArr=[],nodeIds=[],allUpdates={}}){
   for (let id of folderArr) {
-    const nodeObjI = (allUpdates[id]) ? allUpdates[id] : loadedNodeObj[id];
+    const nodeObj = (allUpdates[id]) ? allUpdates[id] : loadedNodeObj[id];
       nodeIds.push(id);
-      if (nodeObjI.type === "folder" && nodeObjI.isOpen) { buildNodeIdArray({loadedNodeObj,folderArr:nodeObjI.childNodeIds,nodeIds,allUpdates}); }
+      if ((nodeObj.type === "folder" || nodeObj.type === "repo") && nodeObj.isOpen) { buildNodeIdArray({loadedNodeObj,folderArr:nodeObj.childNodeIds,nodeIds,allUpdates}); }
   }
   return nodeIds;
 }
 
 function removeTreeNodeIdsFromAllSelected({allSelected,loadedNodeObj,allUpdates,nodeId}){
   allSelected.splice(allSelected.indexOf(nodeId),1)
-  const nodeObjI = (allUpdates[nodeId]) ? allUpdates[nodeId] : loadedNodeObj[nodeId];
-  if (nodeObjI.type === "folder"){
-    for (let nodeChildId of nodeObjI.childNodeIds){
+  const nodeObj = (allUpdates[nodeId]) ? allUpdates[nodeId] : loadedNodeObj[nodeId];
+  if (nodeObj.type === "folder"){
+    for (let nodeChildId of nodeObj.childNodeIds){
       removeTreeNodeIdsFromAllSelected({allSelected,loadedNodeObj,allUpdates,nodeId:nodeChildId})
     }
   }
@@ -297,7 +341,7 @@ function selectVisibleTree({allSelected,loadedNodeObj,nodeId,newAllUpdates,start
 function visibleChildNodeIds({loadedNodeObj,nodeId,newAllUpdates,previousNodeIds=[]}){
   previousNodeIds.unshift(nodeId)
   const nodeObj = (newAllUpdates[nodeId]) ? newAllUpdates[nodeId] : loadedNodeObj[nodeId];
-  if (nodeObj.type === "folder" && nodeObj.isOpen){
+  if ((nodeObj.type === "folder" || nodeObj.type === "repo") && nodeObj.isOpen){
     for (let nodeChildId of nodeObj.childNodeIds){
     visibleChildNodeIds({loadedNodeObj,nodeId:nodeChildId,newAllUpdates,previousNodeIds})
     }
@@ -315,7 +359,7 @@ function deselectVisibleTree({allSelected,loadedNodeObj,nodeId,newAllUpdates,sta
       newNodeObj["appearance"] = "default";
       newAllUpdates[nodeId] = newNodeObj;
         //if open folder and isn't already selected then select the folder's children
-        if (nodeObj.type === "folder" && nodeObj.isOpen){
+        if ((nodeObj.type === "folder" || nodeObj.type === "repo") && nodeObj.isOpen){
           for (let nodeChildId of nodeObj.childNodeIds){
             deselectVisibleTree({allSelected,loadedNodeObj,nodeId:nodeChildId,newAllUpdates})
           }
@@ -677,7 +721,7 @@ const Node = React.memo(function Node(props) {
 
 
   if (props.nodeObj.type === "folder"){
-    //****FOLDER*****
+    //**** FOLDER *****
 
     const toggleLabel = (props.nodeObj.isOpen) ? "Close" : "Open";
     const toggle = <button 
@@ -724,6 +768,54 @@ const Node = React.memo(function Node(props) {
     style={{
       marginLeft: `${props.level * indentPx}px`
     }}>{toggle} [FOLDER] {props.nodeObj.label} ({numChildren}){deleteNode}</div></div>
+  }else if (props.nodeObj.type === "repo"){
+    //**** REPO *****
+
+    const toggleLabel = (props.nodeObj.isOpen) ? "Close" : "Open";
+    const toggle = <button 
+    onMouseDown={e=>{ e.preventDefault(); }}
+    data-doenet-browserid={props.browserId}
+    tabIndex={-1}
+    onClick={(e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj })
+      // props.actions().toggleFolder(props.nodeId,props.nodeObj);
+    }}>{toggleLabel}</button>
+
+    return <div 
+    data-doenet-browserid={props.browserId}
+    tabIndex={-1} 
+    onClick={(e) => {
+      props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
+    }} 
+  
+    onDoubleClick={(e) => {
+      props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj })
+    }} 
+  
+   
+    onBlur={(e) => {
+  
+      //Only clear if focus goes outside of this node group
+       if (e.relatedTarget === null){
+         props.setClearSelection(true);
+       }else if(e.relatedTarget.dataset.doenetBrowserid !== props.browserId){
+        props.setClearSelection(true);
+      }
+   
+    }}
+    style={{
+      width: "300px",
+      padding: "4px",
+      border: "1px solid black",
+      backgroundColor: bgcolor,
+      margin: "2px"
+    }} ><div 
+    className="noselect" 
+    style={{
+      marginLeft: `${props.level * indentPx}px`
+    }}>{toggle} [REPO] {props.nodeObj.label} ({numChildren}){deleteNode}</div></div>
   }else if (props.nodeObj.type === "url"){
     //*****URL*****
     return <div 
@@ -752,7 +844,65 @@ const Node = React.memo(function Node(props) {
     className="noselect" 
     style={{
       marginLeft: `${props.level * indentPx + 34}px`
-    }}>[URL] {props.nodeObj.label} ({numChildren}){deleteNode}</div></div>
+    }}>[URL] {props.nodeObj.label} {deleteNode}</div></div>
+  }else if (props.nodeObj.type === "doenetML"){
+    //***** doenetML *****
+    return <div 
+    data-doenet-browserid={props.browserId}
+    tabIndex={-1} 
+    onClick={(e) => {
+      props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
+    }} 
+  
+    onBlur={(e) => {
+      //Only clear if focus goes outside of this node group
+       if (e.relatedTarget === null){
+         props.setClearSelection(true);
+       }else if(e.relatedTarget.dataset.doenetBrowserid !== props.browserId){
+        props.setClearSelection(true);
+      }
+    }}
+
+    style={{
+      width: "300px",
+      padding: "4px",
+      border: "1px solid black",
+      backgroundColor: bgcolor,
+      margin: "2px"
+    }} ><div 
+    className="noselect" 
+    style={{
+      marginLeft: `${props.level * indentPx + 34}px`
+    }}>[doenetML] {props.nodeObj.label} {deleteNode}</div></div>
+  }else if (props.nodeObj.type === "assignment"){
+    //***** assignment *****
+    return <div 
+    data-doenet-browserid={props.browserId}
+    tabIndex={-1} 
+    onClick={(e) => {
+      props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
+    }} 
+  
+    onBlur={(e) => {
+      //Only clear if focus goes outside of this node group
+       if (e.relatedTarget === null){
+         props.setClearSelection(true);
+       }else if(e.relatedTarget.dataset.doenetBrowserid !== props.browserId){
+        props.setClearSelection(true);
+      }
+    }}
+
+    style={{
+      width: "300px",
+      padding: "4px",
+      border: "1px solid black",
+      backgroundColor: bgcolor,
+      margin: "2px"
+    }} ><div 
+    className="noselect" 
+    style={{
+      marginLeft: `${props.level * indentPx + 34}px`
+    }}>[assignment] {props.nodeObj.label} {deleteNode}</div></div>
   }
   
 })
