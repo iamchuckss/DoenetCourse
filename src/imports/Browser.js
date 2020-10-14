@@ -233,9 +233,28 @@ export default function Browser(props) {
   buildNodeArray(latestRootFolders);
 
   function buildNodeArray(folderArr, level = 0, parent = "") {
+    let numInParent = 0;
     for (let [i, id] of folderArr.entries()) {
       const nodeObjI = (state.allUpdates[id]) ? state.allUpdates[id] : loadedNodeObj[id];
-      const nodeItem = <Node key={`node${level}-${i}${parent}`} level={level} nodeObj={nodeObjI} nodeId={id} browserId={browserId} transferDispatch={transferDispatch} setClearSelection={setClearSelection} />;
+      //Implementation of folders only flag
+      if (props.foldersOnly && nodeObjI.type !== "folder" && nodeObjI.type !== "repo" ){
+        continue;
+      } 
+      numInParent++;
+      let numChildren = countChildren(nodeObjI);
+
+    
+      const nodeItem = <Node 
+      key={`node${level}-${i}${parent}`} 
+      level={level} 
+      nodeObj={nodeObjI} 
+      nodeId={id} 
+      browserId={browserId} 
+      transferDispatch={transferDispatch} 
+      setClearSelection={setClearSelection} 
+      foldersOnly={props.foldersOnly}
+      numChildren={numChildren}
+      />;
       const draggableAndDroppableNodeItem = createDnDItem(id, nodeItem);
       nodes.push(draggableAndDroppableNodeItem);
       // nodes.push(nodeItem);
@@ -243,13 +262,31 @@ export default function Browser(props) {
         buildNodeArray(nodeObjI.childNodeIds, level + 1, `${parent}-${i}`)
       }
     }
-    if (folderArr.length === 0) {
+    //Add empty node if open folder is empty
+    if (numInParent < 1) {
       nodes.push(<Node key={`node${level}-0${parent}`} level={level} empty={true} />)
     }
     
   }
 
+  function countChildren(nodeObj){
+    let numChildren = 0;
+    if (nodeObj && nodeObj.childNodeIds && nodeObj.childNodeIds.length > 0){
 
+      if (props.foldersOnly){
+        for (let nodeId of nodeObj.childNodeIds){
+        const childNodeObj = (state.allUpdates[nodeId]) ? state.allUpdates[nodeId] : loadedNodeObj[nodeId];
+          if (childNodeObj.type === "folder" || childNodeObj.type === "repo"){
+            numChildren++;
+          }
+        }
+      }else{
+        numChildren = nodeObj.childNodeIds.length;
+      }
+
+    }
+    return numChildren;
+  }
 
 
   return <>
@@ -685,10 +722,6 @@ function reducer(state, action) {
 const Node = React.memo(function Node(props) {
 
   console.log("Node", props)
-  let numChildren = 0;
-  if (props.nodeObj && props.nodeObj.childNodeIds && props.nodeObj.childNodeIds.length){
-    numChildren = props.nodeObj.childNodeIds.length;
-  }
 
   const indentPx = 20;
   if (props.empty) {
@@ -720,9 +753,10 @@ const Node = React.memo(function Node(props) {
   if (props.nodeObj.appearance === "dragged") { bgcolor = "#f3ff35"; }  
 
 
+
+
   if (props.nodeObj.type === "folder"){
     //**** FOLDER *****
-
     const toggleLabel = (props.nodeObj.isOpen) ? "Close" : "Open";
     const toggle = <button 
     onMouseDown={e=>{ e.preventDefault(); }}
@@ -767,7 +801,7 @@ const Node = React.memo(function Node(props) {
     className="noselect" 
     style={{
       marginLeft: `${props.level * indentPx}px`
-    }}>{toggle} [FOLDER] {props.nodeObj.label} ({numChildren}){deleteNode}</div></div>
+    }}>{toggle} [FOLDER] {props.nodeObj.label} ({props.numChildren}){deleteNode}</div></div>
   }else if (props.nodeObj.type === "repo"){
     //**** REPO *****
 
@@ -815,7 +849,7 @@ const Node = React.memo(function Node(props) {
     className="noselect" 
     style={{
       marginLeft: `${props.level * indentPx}px`
-    }}>{toggle} [REPO] {props.nodeObj.label} ({numChildren}){deleteNode}</div></div>
+    }}>{toggle} [REPO] {props.nodeObj.label} ({props.numChildren}){deleteNode}</div></div>
   }else if (props.nodeObj.type === "url"){
     //*****URL*****
     return <div 
