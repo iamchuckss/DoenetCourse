@@ -92,13 +92,13 @@ export default function Browser(props) {
   const [clearSelection, setClearSelection] = useState(false);
 
   const initialState = { 
-    mode: "READY", 
+    mode: "READY",
     allUpdates: {}, 
     allSelected: [], 
     nodeIdsArr: [], 
     draggedItemData: { id: null, previousParentId: null, sourceParentId: null },
     validDrop: false,
-    nodeObjCache: {}
+    dragState: {}
   }
   const [state, dispatch] = useReducer(reducer, initialState);
   console.log("\n###BASESTATE", state)
@@ -136,7 +136,7 @@ export default function Browser(props) {
         let processQueue = [ ...state.allSelected ];
         while (processQueue.length != 0) {
           const currentNodeObjId = processQueue.pop();
-          const currentNodeObj = (state.allUpdates[currentNodeObjId]) ? state.allUpdates[currentNodeObjId] : loadedNodeObj[currentNodeObjId];          
+          const currentNodeObj = getNodeObj({id:currentNodeObjId, stateList:[state.dragState, state.allUpdates, loadedNodeObj]});
           for (let childNodeObjId of currentNodeObj.childNodeIds) {
             if (draggedItemIds.has(childNodeObjId)) {
               draggedItemIds.delete(childNodeObjId);
@@ -157,7 +157,7 @@ export default function Browser(props) {
       if (draggedItemIds.length == 0) draggedItemIds = [id];
 
       for (let draggedItemId of draggedItemIds) {
-        let dragItemObj = state.allUpdates[draggedItemId] ? state.allUpdates[draggedItemId] : loadedNodeObj[draggedItemId];
+        let dragItemObj = getNodeObj({id:draggedItemId, stateList:[state.dragState, state.allUpdates, loadedNodeObj]});
         if (dragItemObj.isOpen) {
           // close dragItem if open
           transferDispatch('TOGGLEFOLDER', { nodeId: draggedItemId, nodeObj: dragItemObj })
@@ -319,6 +319,15 @@ function deselectVisibleTree({allSelected,loadedNodeObj,nodeId,newAllUpdates,sta
         }
     }
   }
+
+function getNodeObj({id, stateList=[]}) {
+  for (let stateObj of stateList) {
+    if (stateObj[id]) {
+      return stateObj[id];
+    }
+  }
+  return null;
+}
 
 function reducer(state, action) {
   console.log("----------REDUCER type:", action.type, "transferPayload:", action.payload)
