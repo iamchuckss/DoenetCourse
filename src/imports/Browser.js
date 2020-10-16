@@ -150,7 +150,7 @@ export default function Browser(props) {
     nodeObjCache: {}
   }
   const [state, dispatch] = useReducer(reducer, initialState);
-  console.log("\n###BASESTATE", state)
+  console.log("\n###BASESTATE", state,"allSelected",state.allSelected)
   if (clearSelection){
     dispatch({ type: "CLEARALLSELECTED" })
     setClearSelection(false);
@@ -173,7 +173,7 @@ export default function Browser(props) {
     const onDropEnter = () => {
       const dropTargetObj = { ...state.allUpdates[id] ? state.allUpdates[id] : loadedNodeObj[id] };
       if (!dropTargetObj.isOpen) {
-        transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dropTargetObj })
+        transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dropTargetObj, selectOnlyOne: props.selectOnlyOne })
       }      
       transferDispatch("DROPENTER", {dropTargetId: id});
     } 
@@ -194,7 +194,7 @@ export default function Browser(props) {
       const dragItemObj = { ...state.allUpdates[id] ? state.allUpdates[id] : loadedNodeObj[id] };
       if (dragItemObj.isOpen) {
         // close dragItem if open
-        transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dragItemObj })
+        transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dragItemObj, selectOnlyOne: props.selectOnlyOne })
       }      
       transferDispatch("DRAGSTART", { dragItemId: id });
     } 
@@ -204,7 +204,7 @@ export default function Browser(props) {
       const dropTargetObj = { ...state.allUpdates[id] ? state.allUpdates[id] : loadedNodeObj[id] };
       const isDraggedOverSelf = state.draggedItemData.id == id;
       if (!dropTargetObj.isOpen && !isDraggedOverSelf) {
-        transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dropTargetObj })
+        transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dropTargetObj, selectOnlyOne: props.selectOnlyOne })
       }      
       transferDispatch("DRAGOVER", {dropTargetId: id, ev: ev});
     }
@@ -253,6 +253,7 @@ export default function Browser(props) {
       transferDispatch={transferDispatch} 
       setClearSelection={setClearSelection} 
       foldersOnly={props.foldersOnly}
+      selectOnlyOne={props.selectOnlyOne}
       numChildren={numChildren}
       />;
       const draggableAndDroppableNodeItem = createDnDItem(id, nodeItem);
@@ -293,7 +294,7 @@ export default function Browser(props) {
   
     <button 
     data-doenet-browserid={browserId}
-    tabIndex={-1}
+    tabIndex={0}
     onMouseDown={e=>{ e.preventDefault(); }}
     onClick={()=>{
       let node = {
@@ -306,11 +307,11 @@ export default function Browser(props) {
       let nodeObj = {};
       let Id = nanoid();
       nodeObj[Id] = node;
-    dispatch({ type: "ADDNODES",payload:{loadedNodeObj,nodes:[nodeObj]}})
+    dispatch({ type: "ADDNODES",payload:{loadedNodeObj,nodes:[nodeObj],selectOnlyOne:props.selectOnlyOne}})
       }}>Add Folder</button>
        <button 
     data-doenet-browserid={browserId}
-    tabIndex={-1}
+    tabIndex={0}
     onMouseDown={e=>{ e.preventDefault(); }}
     onClick={()=>{
       let node = {
@@ -322,7 +323,7 @@ export default function Browser(props) {
       let nodeObj = {};
       let Id = nanoid();
       nodeObj[Id] = node;
-    dispatch({ type: "ADDNODES",payload:{loadedNodeObj,nodes:[nodeObj]}})
+    dispatch({ type: "ADDNODES",payload:{loadedNodeObj,nodes:[nodeObj],selectOnlyOne:props.selectOnlyOne}})
       }}>Add URL</button>
     {nodes}
   </>
@@ -349,15 +350,18 @@ function removeTreeNodeIdsFromAllSelected({allSelected,loadedNodeObj,allUpdates,
 
 function selectVisibleTree({allSelected,loadedNodeObj,nodeId,newAllUpdates,startWithChildren=false}){
   let visibleChildren = visibleChildNodeIds({loadedNodeObj,nodeId,newAllUpdates});
-  if (startWithChildren) {
-    visibleChildren.shift();
-  } 
+  console.log(">>>startWithChildren",startWithChildren,"visibleChildren",visibleChildren,"allSelected",allSelected)
+  // if (!startWithChildren) {
+  //   visibleChildren.shift();
+  // } 
   for (let nodeId of visibleChildren){
     const nodeObj = (newAllUpdates[nodeId]) ? newAllUpdates[nodeId] : loadedNodeObj[nodeId];
     let newNodeObj = {...nodeObj}
     newNodeObj["appearance"] = "selected";
     newAllUpdates[nodeId] = newNodeObj;
-    allSelected.push(nodeId);
+    if (!allSelected.includes(nodeId)){ //Protect from duplicates
+      allSelected.push(nodeId);
+    }
   }
   // allSelected = allSelected.concat(visibleChildren)
   // if (!startWithChildren) {allSelected.push(nodeId);}
@@ -424,13 +428,15 @@ function reducer(state, action) {
       return {...state,allSelected:[],allUpdates:newAllUpdates}
     }
     case 'TOGGLEFOLDER': {
+      const selectOnlyOne = action.payload.selectOnlyOne;
+
       let newNodeObj = { ...action.payload.nodeObj }
       let newAllUpdates = { ...state.allUpdates };
       let newAllSelected = [...state.allSelected]
       newNodeObj["isOpen"] = !newNodeObj["isOpen"];      
       newAllUpdates[action.payload.nodeId] = newNodeObj;
 
-      if (newNodeObj["isOpen"] && newNodeObj.appearance === 'selected'){
+      if (newNodeObj["isOpen"] && newNodeObj.appearance === 'selected' && !selectOnlyOne){
         //Opening a selected folder. Select all children
         selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:action.payload.nodeId,newAllUpdates,startWithChildren:true})
       }
@@ -439,6 +445,7 @@ function reducer(state, action) {
       return { ...state, allUpdates:newAllUpdates,allSelected:newAllSelected };
     }
     case 'CLICKITEM': {
+      const selectOnlyOne = action.payload.selectOnlyOne;
       const metakey = action.payload.metaKey;
       const shiftKey = action.payload.shiftKey;
       let mode = state.mode;
@@ -454,7 +461,26 @@ function reducer(state, action) {
       let newAllSelected = [...state.allSelected ];
       let nodeIdsArr = state.nodeIdsArr;
 
-      if (!metakey && !shiftKey) {
+      if (selectOnlyOne) {
+        const nodeObj = (state.allUpdates[action.payload.nodeId]) ? state.allUpdates[action.payload.nodeId] : loadedNodeObj[action.payload.nodeId];
+        
+        if (nodeObj.appearance !== "selected"){
+          let nodeIdToSelect = action.payload.nodeId;
+          newAllSelected = [nodeIdToSelect];
+      
+          //Deselect previously selected
+          for (let selectedNodeId of state.allSelected){
+            const nodeObj = (state.allUpdates[selectedNodeId]) ? state.allUpdates[selectedNodeId] : loadedNodeObj[selectedNodeId];
+            let selectedNodeObj = {...nodeObj}
+            selectedNodeObj["appearance"] = "default";
+            newAllUpdates[selectedNodeId] = selectedNodeObj;
+          }
+
+          //Select Single Node
+          newNodeObj.appearance = "selected";
+          newAllUpdates[nodeIdToSelect] = newNodeObj;
+        }
+      } else if (!metakey && !shiftKey) {
         //No shift or control 
         //If clicked node isn't selected
         //then Deselect all selected nodes 
@@ -464,6 +490,7 @@ function reducer(state, action) {
         if (nodeObj.appearance !== "selected"){
           newAllSelected = [];
         
+          //Deselect previously selected
           for (let selectedNodeId of state.allSelected){
             const nodeObj = (state.allUpdates[selectedNodeId]) ? state.allUpdates[selectedNodeId] : loadedNodeObj[selectedNodeId];
             let selectedNodeObj = {...nodeObj}
@@ -525,6 +552,8 @@ function reducer(state, action) {
       return { ...state, allUpdates:newAllUpdates,nodeIdsArr,allSelected:newAllSelected,mode };
     }
     case 'ADDNODES': {
+      const selectOnlyOne = action.payload.selectOnlyOne;
+
       let newAllUpdates = {...state.allUpdates}
       let newNodeParentId = state.allSelected[state.allSelected.length - 1];
       let newAllSelected = [...state.allSelected]
@@ -543,7 +572,7 @@ function reducer(state, action) {
         newNodeParent.childNodeIds.push(nodeId)
         nodeObj[nodeId]["parentId"] = newNodeParentId;
         //if parent is selected, select node
-        if (newNodeParent.appearance === "selected"){
+        if (newNodeParent.appearance === "selected" && !selectOnlyOne){
           nodeObj[nodeId]["appearance"] = "selected";
           newAllSelected.unshift(nodeId)
         }
@@ -759,25 +788,26 @@ const Node = React.memo(function Node(props) {
     //**** FOLDER *****
     const toggleLabel = (props.nodeObj.isOpen) ? "Close" : "Open";
     const toggle = <button 
-    onMouseDown={e=>{ e.preventDefault(); }}
+    onMouseDown={e=>{ e.preventDefault(); e.stopPropagation(); }}
+    onDoubleClick={e=>{ e.preventDefault(); e.stopPropagation(); }}
     data-doenet-browserid={props.browserId}
-    tabIndex={-1}
+    tabIndex={0}
     onClick={(e) => {
       e.preventDefault();
       e.stopPropagation();
-      props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj })
+      props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj, selectOnlyOne: props.selectOnlyOne })
       // props.actions().toggleFolder(props.nodeId,props.nodeObj);
     }}>{toggleLabel}</button>
 
     return <div 
     data-doenet-browserid={props.browserId}
-    tabIndex={-1} 
+    tabIndex={0} 
     onClick={(e) => {
-      props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
+      props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, selectOnlyOne: props.selectOnlyOne, shiftKey: e.shiftKey, metaKey: e.metaKey })
     }} 
   
     onDoubleClick={(e) => {
-      props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj })
+      props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj, selectOnlyOne: props.selectOnlyOne})
     }} 
   
    
@@ -807,25 +837,26 @@ const Node = React.memo(function Node(props) {
 
     const toggleLabel = (props.nodeObj.isOpen) ? "Close" : "Open";
     const toggle = <button 
-    onMouseDown={e=>{ e.preventDefault(); }}
+    onMouseDown={e=>{ e.preventDefault(); e.stopPropagation(); }}
+    onDoubleClick={e=>{ e.preventDefault(); e.stopPropagation(); }}
     data-doenet-browserid={props.browserId}
-    tabIndex={-1}
+    tabIndex={0}
     onClick={(e) => {
       e.preventDefault();
       e.stopPropagation();
-      props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj })
+      props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj, selectOnlyOne: props.selectOnlyOne })
       // props.actions().toggleFolder(props.nodeId,props.nodeObj);
     }}>{toggleLabel}</button>
 
     return <div 
     data-doenet-browserid={props.browserId}
-    tabIndex={-1} 
+    tabIndex={0} 
     onClick={(e) => {
-      props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
+      props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, selectOnlyOne: props.selectOnlyOne, shiftKey: e.shiftKey, metaKey: e.metaKey })
     }} 
   
     onDoubleClick={(e) => {
-      props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj })
+      props.transferDispatch('TOGGLEFOLDER', { nodeId: props.nodeId, nodeObj: props.nodeObj, selectOnlyOne: props.selectOnlyOne })
     }} 
   
    
@@ -854,9 +885,9 @@ const Node = React.memo(function Node(props) {
     //*****URL*****
     return <div 
     data-doenet-browserid={props.browserId}
-    tabIndex={-1} 
+    tabIndex={0} 
     onClick={(e) => {
-      props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
+      props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, selectOnlyOne: props.selectOnlyOne, shiftKey: e.shiftKey, metaKey: e.metaKey })
     }} 
   
     onBlur={(e) => {
@@ -883,9 +914,9 @@ const Node = React.memo(function Node(props) {
     //***** doenetML *****
     return <div 
     data-doenet-browserid={props.browserId}
-    tabIndex={-1} 
+    tabIndex={0} 
     onClick={(e) => {
-      props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
+      props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, selectOnlyOne: props.selectOnlyOne, shiftKey: e.shiftKey, metaKey: e.metaKey })
     }} 
   
     onBlur={(e) => {
@@ -912,9 +943,9 @@ const Node = React.memo(function Node(props) {
     //***** assignment *****
     return <div 
     data-doenet-browserid={props.browserId}
-    tabIndex={-1} 
+    tabIndex={0} 
     onClick={(e) => {
-      props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, shiftKey: e.shiftKey, metaKey: e.metaKey })
+      props.transferDispatch('CLICKITEM', { nodeId: props.nodeId, nodeObj: props.nodeObj, selectOnlyOne: props.selectOnlyOne, shiftKey: e.shiftKey, metaKey: e.metaKey })
     }} 
   
     onBlur={(e) => {
