@@ -168,18 +168,16 @@ export default function Browser(props) {
     } 
     
     const onDragOver = (ev, id) => {
-      console.log("dispatch dragged over event: ", id)
-      const { draggedItemIds } = state.draggedItemData;
-      const dropTargetObj = { ...state.allUpdates[id] ? state.allUpdates[id] : loadedNodeObj[id] };
-      const isDraggedOverSelf = draggedItemIds.has(id);
-      if (!dropTargetObj.isOpen && !isDraggedOverSelf) {
-        transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dropTargetObj })
-      }      
+      // const { draggedItemIds } = state.draggedItemData;
+      // const dropTargetObj = { ...state.allUpdates[id] ? state.allUpdates[id] : loadedNodeObj[id] };
+      // const isDraggedOverSelf = draggedItemIds.has(id);
+      // if (!dropTargetObj.isOpen && !isDraggedOverSelf) {
+      //   transferDispatch('TOGGLEFOLDER', { nodeId: id, nodeObj: dropTargetObj })
+      // }      
       transferDispatch("DRAGOVER", {dropTargetId: id, ev: ev});
     }
 
     const onDragEnd = () => {
-      console.log("dispatch dragEnd event: ", id)
       transferDispatch("DRAGEND", {});
     }
 
@@ -323,7 +321,7 @@ function deselectVisibleTree({allSelected,loadedNodeObj,nodeId,newAllUpdates,sta
 function getNodeObj({id, stateList=[]}) {
   for (let stateObj of stateList) {
     if (stateObj[id]) {
-      return stateObj[id];
+      return { ...stateObj[id]};
     }
   }
   return null;
@@ -575,7 +573,7 @@ function reducer(state, action) {
 
       dropTargetParentNode.childNodeIds = dropTargetParentChildList;
       newDragState[dropTargetParentId] = dropTargetParentNode;
-      
+
       return { ...state, draggedItemData: updatedDraggedItemData, dragState: newDragState }
     }
     case 'DROPLEAVE': {      
@@ -584,38 +582,40 @@ function reducer(state, action) {
     }
     case 'DROP': { 
       const { draggedItemIds, previousParentId } = { ...state.draggedItemData };
+      const newDragState = { ...state.dragState }
       const newAllUpdates = { ...state.allUpdates }
 
       // item moved out of original parent or order changed
-      if (newAllUpdates[draggedShadowId]) {
+      if (newDragState[draggedShadowId]) {
+        let previousParentNode = getNodeObj({id:previousParentId, stateList:[newDragState, state.allUpdates, loadedNodeObj]})
+        let previousList = [...previousParentNode.childNodeIds];
+        const shadowIndex = previousList.findIndex(itemId => itemId == draggedShadowId);
+
         // remove draggedItems from their parents
         for (let draggedItemId of draggedItemIds) {
-          const draggedItemNodeObj = { ...newAllUpdates[draggedItemId] ? newAllUpdates[draggedItemId] : loadedNodeObj[draggedItemId]};
+          const draggedItemNodeObj = getNodeObj({id:draggedItemId, stateList:[newDragState, state.allUpdates, loadedNodeObj]})
           const draggedItemParentId = draggedItemNodeObj.parentId;
-          const draggedItemParentNodeObj = { ...newAllUpdates[draggedItemParentId] ? newAllUpdates[draggedItemParentId] : loadedNodeObj[draggedItemParentId]};
+          const draggedItemParentNodeObj = getNodeObj({id:draggedItemParentId, stateList:[newDragState, state.allUpdates, loadedNodeObj]})
           let parentList = [...draggedItemParentNodeObj.childNodeIds];
           const indexInList = parentList.findIndex(itemId => itemId == draggedItemId);
           if (indexInList > -1) {
             parentList.splice(indexInList, 1);
           }
-          newAllUpdates[draggedItemParentId].childNodeIds = parentList;
-        }
+          draggedItemParentNodeObj.childNodeIds = parentList;
+          newAllUpdates[draggedItemParentId] = draggedItemParentNodeObj;
 
-        // move draggedItems into previousParentId
-        let previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
-        let previousList = [...previousParentNode.childNodeIds];
-        const shadowIndex = previousList.findIndex(itemId => itemId == draggedShadowId);
-        for (let draggedItemId of draggedItemIds) {
+          // move draggedItems into previousParentId
           if (shadowIndex > -1) {
             previousList.splice(shadowIndex, 0, draggedItemId)
           }
           previousParentNode.childNodeIds = previousList;
-          newAllUpdates[draggedItemId].parentId = previousParentId;
+          draggedItemNodeObj.parentId = previousParentId;
+          newAllUpdates[draggedItemId] = draggedItemNodeObj;
           newAllUpdates[previousParentId] = previousParentNode;
         }             
       }      
 
-      return { ...state, allUpdates: newAllUpdates, validDrop: true };
+      return { ...state, dragState: newDragState, allUpdates: newAllUpdates, validDrop: true };
     }
     case 'DRAGEND': { 
       const newAllUpdates = { ...state.allUpdates }
@@ -632,19 +632,16 @@ function reducer(state, action) {
         const { previousParentId } = state.draggedItemData;
         const previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
         let previousList = [...previousParentNode.childNodeIds];
-        
-        // replace shadow in previousParentId with draggedItem
         let indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
         if (indexInList > -1) {
           previousList.splice(indexInList, 1);
         }
         previousParentNode.childNodeIds = previousList;
         newAllUpdates[previousParentId] = previousParentNode;
-
-        delete newAllUpdates[draggedShadowId];
       }
+      console.log("Here", state.dragState, newAllUpdates)
 
-      return { ...state, draggedItemData: null, allUpdates: newAllUpdates, validDrop: false, allSelected: [] }
+      return { ...state, draggedItemData: null, allUpdates: newAllUpdates, dragState: {}, validDrop: false, allSelected: [] }
     }
     default:
       throw new Error(`Unhandled type in reducer ${action, action.type}`);
