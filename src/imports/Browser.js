@@ -531,10 +531,7 @@ function reducer(state, action) {
       // if the item is dragged over itself or any children, remove any shadow then return
       if (isDraggedOverSelf || isDraggedOverShadow || isDraggedOverChild) {
         if (isDraggedOverSelf && newDragState[draggedShadowId]) {
-          const indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
-          if (indexInList > -1) {
-            previousList.splice(indexInList, 1);
-          }       
+          previousList = previousList.filter(itemId => itemId != draggedShadowId);
           previousParentNode.childNodeIds = previousList;
           newDragState[previousParentId] = previousParentNode;
           delete newDragState[draggedShadowId];
@@ -547,10 +544,7 @@ function reducer(state, action) {
       // if dragged into another parent / initial drag
       if (previousParentId !== dropTargetParentId || !newDragState[draggedShadowId]) {
         // remove item from previous list
-        const indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
-        if (indexInList > -1) {
-          previousList.splice(indexInList, 1);
-        }       
+        previousList = previousList.filter(itemId => itemId != draggedShadowId);
         previousParentNode.childNodeIds = previousList;
         newDragState[previousParentId] = previousParentNode;
 
@@ -593,10 +587,7 @@ function reducer(state, action) {
           const draggedItemParentId = draggedItemNodeObj.parentId;
           const draggedItemParentNodeObj = getNodeObj({id:draggedItemParentId, stateList:[newAllUpdates, loadedNodeObj]})
           let parentList = [...draggedItemParentNodeObj.childNodeIds];
-          const indexInList = parentList.findIndex(itemId => itemId == draggedItemId);
-          if (indexInList > -1) {
-            parentList.splice(indexInList, 1);
-          }
+          parentList = parentList.filter(itemId => itemId != draggedItemId);
           draggedItemParentNodeObj.childNodeIds = parentList;
           newAllUpdates[draggedItemParentId] = draggedItemParentNodeObj;
         }
