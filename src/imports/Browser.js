@@ -198,12 +198,12 @@ export default function Browser(props) {
 
   let nodes = [];  
   
-  const latestRootFolders = ((state.allUpdates['root']) ? state.allUpdates['root'] : loadedNodeObj['root']).childNodeIds;
+  const latestRootFolders = getNodeObj({id:"root", stateList:[state.dragState, state.allUpdates, loadedNodeObj]}).childNodeIds;
   buildNodeArray(latestRootFolders);
 
   function buildNodeArray(folderArr, level = 0, parent = "root") {
     for (let [i, id] of folderArr.entries()) {
-      const nodeObjI = (state.allUpdates[id]) ? state.allUpdates[id] : loadedNodeObj[id];
+      const nodeObjI = getNodeObj({id:id, stateList:[state.dragState, state.allUpdates, loadedNodeObj]})
       const nodeItem = <Node key={`node${level}-${i}${parent}-${i}`} level={level} nodeObj={nodeObjI} nodeId={id} browserId={browserId} transferDispatch={transferDispatch} setClearSelection={setClearSelection} />;
       const draggableAndDroppableNodeItem = createDnDItem(id, nodeItem);
       nodes.push(draggableAndDroppableNodeItem);
@@ -492,11 +492,11 @@ function reducer(state, action) {
     }
     case 'DRAGSTART': {
       const draggedItemIds = action.payload.draggedItemIds;
-      const newAllUpdates = { ...state.allUpdates }
+      const newDragState = { ...state.dragState }
 
       // set previousParent to last item in selected
       const lastSelectedId = draggedItemIds[draggedItemIds.length - 1];
-      const lastSelectedObj = { ...newAllUpdates[lastSelectedId] ? newAllUpdates[lastSelectedId] : loadedNodeObj[lastSelectedId]};
+      const lastSelectedObj = getNodeObj({id:lastSelectedId, stateList:[newDragState, state.allUpdates, loadedNodeObj]})
 
       const draggedItemData = {
         previousParentId: lastSelectedObj.parentId,
@@ -505,26 +505,26 @@ function reducer(state, action) {
       }
       
       for (let id of draggedItemIds) {
-        const draggedNode = { ...newAllUpdates[id] ? newAllUpdates[id] : loadedNodeObj[id]};
+        const draggedNode = getNodeObj({id:id, stateList:[newDragState, state.allUpdates, loadedNodeObj]})
         draggedNode.appearance = "dragged";
-        newAllUpdates[id] = draggedNode;
+        newDragState[id] = draggedNode;
       }      
 
-      return { ...state, draggedItemData: draggedItemData, allUpdates: newAllUpdates }
+      return { ...state, draggedItemData: draggedItemData, dragState: newDragState }
     }
     case 'DRAGOVER': { 
       const { previousParentId } = { ...state.draggedItemData };
       const dropTargetId = action.payload.dropTargetId;
       
       const updatedDraggedItemData = { ...state.draggedItemData };
-      const newAllUpdates = { ...state.allUpdates }
-      const previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
+      const newDragState = { ...state.dragState }
+      const previousParentNode = getNodeObj({id:previousParentId, stateList:[newDragState, state.allUpdates, loadedNodeObj]})
       let previousList = [...previousParentNode.childNodeIds];
       
       const tokenizedId = dropTargetId.split("-");
-      const dropTargetNode = { ...newAllUpdates[dropTargetId] ? newAllUpdates[dropTargetId] : loadedNodeObj[dropTargetId]};      
+      const dropTargetNode = getNodeObj({id:dropTargetId, stateList:[newDragState, state.allUpdates, loadedNodeObj]})
       const dropTargetParentId = dropTargetNode && tokenizedId[0] != "EMPTY" ? dropTargetNode.parentId : tokenizedId[1];
-      const dropTargetParentNode = { ...newAllUpdates[dropTargetParentId] ? newAllUpdates[dropTargetParentId] : loadedNodeObj[dropTargetParentId]};
+      const dropTargetParentNode = getNodeObj({id:dropTargetParentId, stateList:[newDragState, state.allUpdates, loadedNodeObj]})
       
       const isDraggedOverSelf = state.draggedItemData.draggedItemIds.has(dropTargetId);
       const isDraggedOverShadow = dropTargetId == draggedShadowId;
@@ -532,29 +532,29 @@ function reducer(state, action) {
 
       // if the item is dragged over itself or any children, remove any shadow then return
       if (isDraggedOverSelf || isDraggedOverShadow || isDraggedOverChild) {
-        if (isDraggedOverSelf && newAllUpdates[draggedShadowId]) {
+        if (isDraggedOverSelf && newDragState[draggedShadowId]) {
           const indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
           if (indexInList > -1) {
             previousList.splice(indexInList, 1);
           }       
           previousParentNode.childNodeIds = previousList;
-          newAllUpdates[previousParentId] = previousParentNode;
-          delete newAllUpdates[draggedShadowId];
+          newDragState[previousParentId] = previousParentNode;
+          delete newDragState[draggedShadowId];
         }
-        return { ...state, allUpdates: newAllUpdates };
+        return { ...state, dragState: newDragState };
       }
 
       let dropTargetParentChildList = [...dropTargetParentNode.childNodeIds];      
 
       // if dragged into another parent / initial drag
-      if (previousParentId !== dropTargetParentId || !newAllUpdates[draggedShadowId]) {
+      if (previousParentId !== dropTargetParentId || !newDragState[draggedShadowId]) {
         // remove item from previous list
         const indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
         if (indexInList > -1) {
           previousList.splice(indexInList, 1);
         }       
         previousParentNode.childNodeIds = previousList;
-        newAllUpdates[previousParentId] = previousParentNode;
+        newDragState[previousParentId] = previousParentNode;
 
         // add new shadow
         const draggedShadowNodeObj = {
@@ -565,7 +565,7 @@ function reducer(state, action) {
           parentId: dropTargetParentId,
         }
         updatedDraggedItemData.previousParentId = dropTargetParentId;
-        newAllUpdates[draggedShadowId] = draggedShadowNodeObj;
+        newDragState[draggedShadowId] = draggedShadowNodeObj;
       }
 
       // add the shadow after the dragged over item
@@ -574,9 +574,9 @@ function reducer(state, action) {
       dropTargetParentChildList.splice(dropTargetIndex, 0, draggedShadowId);
 
       dropTargetParentNode.childNodeIds = dropTargetParentChildList;
-      newAllUpdates[dropTargetParentId] = dropTargetParentNode;
+      newDragState[dropTargetParentId] = dropTargetParentNode;
       
-      return { ...state, draggedItemData: updatedDraggedItemData, allUpdates: newAllUpdates }
+      return { ...state, draggedItemData: updatedDraggedItemData, dragState: newDragState }
     }
     case 'DROPLEAVE': {      
 
