@@ -587,15 +587,11 @@ function reducer(state, action) {
 
       // item moved out of original parent or order changed
       if (newDragState[draggedShadowId]) {
-        let previousParentNode = getNodeObj({id:previousParentId, stateList:[newDragState, state.allUpdates, loadedNodeObj]})
-        let previousList = [...previousParentNode.childNodeIds];
-        const shadowIndex = previousList.findIndex(itemId => itemId == draggedShadowId);
-
         // remove draggedItems from their parents
         for (let draggedItemId of draggedItemIds) {
-          const draggedItemNodeObj = getNodeObj({id:draggedItemId, stateList:[newDragState, state.allUpdates, loadedNodeObj]})
+          const draggedItemNodeObj = getNodeObj({id:draggedItemId, stateList:[newAllUpdates, loadedNodeObj]})
           const draggedItemParentId = draggedItemNodeObj.parentId;
-          const draggedItemParentNodeObj = getNodeObj({id:draggedItemParentId, stateList:[newDragState, state.allUpdates, loadedNodeObj]})
+          const draggedItemParentNodeObj = getNodeObj({id:draggedItemParentId, stateList:[newAllUpdates, loadedNodeObj]})
           let parentList = [...draggedItemParentNodeObj.childNodeIds];
           const indexInList = parentList.findIndex(itemId => itemId == draggedItemId);
           if (indexInList > -1) {
@@ -603,11 +599,19 @@ function reducer(state, action) {
           }
           draggedItemParentNodeObj.childNodeIds = parentList;
           newAllUpdates[draggedItemParentId] = draggedItemParentNodeObj;
+        }
+        
+        const shadowIndex = newDragState[previousParentId].childNodeIds.findIndex(itemId => itemId == draggedShadowId);
+        let previousParentNode = getNodeObj({id:previousParentId, stateList:[newAllUpdates, loadedNodeObj]})
+        let previousList = [...previousParentNode.childNodeIds];
+        for (let draggedItemId of draggedItemIds) {
+          const draggedItemNodeObj = getNodeObj({id:draggedItemId, stateList:[newAllUpdates, loadedNodeObj]})
 
           // move draggedItems into previousParentId
           if (shadowIndex > -1) {
             previousList.splice(shadowIndex, 0, draggedItemId)
           }
+          console.log("Here", previousList, shadowIndex, draggedItemId, previousParentId)
           previousParentNode.childNodeIds = previousList;
           draggedItemNodeObj.parentId = previousParentId;
           newAllUpdates[draggedItemId] = draggedItemNodeObj;
@@ -627,15 +631,11 @@ function reducer(state, action) {
         newAllUpdates[draggedItemId] = draggedNode;
       }      
 
-      if (newAllUpdates[draggedShadowId]) {
+      if (state.dragState[draggedShadowId]) {
         // cleanup shadow
         const { previousParentId } = state.draggedItemData;
-        const previousParentNode = { ...newAllUpdates[previousParentId] ? newAllUpdates[previousParentId] : loadedNodeObj[previousParentId]};
-        let previousList = [...previousParentNode.childNodeIds];
-        let indexInList = previousList.findIndex(itemId => itemId == draggedShadowId);
-        if (indexInList > -1) {
-          previousList.splice(indexInList, 1);
-        }
+        const previousParentNode = getNodeObj({id:previousParentId, stateList:[newAllUpdates, loadedNodeObj]})
+        let previousList = previousParentNode.childNodeIds.filter(itemId => itemId != draggedShadowId);
         previousParentNode.childNodeIds = previousList;
         newAllUpdates[previousParentId] = previousParentNode;
       }
