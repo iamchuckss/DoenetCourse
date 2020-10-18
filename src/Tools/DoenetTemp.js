@@ -20,16 +20,20 @@ export default function temp(){
     <div style={{display:"flex",justifyContent:"space-between"}}>
       <div>
       <h1>Nav</h1>
-      <BrowserRouted foldersOnly={true} selectOnlyOne={true} />
+      <BrowserRouted foldersOnly={true} selectOnlyOne={true} alwaysSelected={true} />
       </div>
       <div>
       <h1>Main</h1>
       <BrowserRouted />
       </div>
       <div>
+      <h1>Support</h1>
+      <BrowserRouted />
+      </div>
+      {/* <div>
       <h1>Regular Browser</h1> 
       <Browser />
-      </div>
+      </div> */}
     </div>
 
 

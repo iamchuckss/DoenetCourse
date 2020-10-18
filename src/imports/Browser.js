@@ -160,13 +160,16 @@ export default function Browser(props) {
   const [state, dispatch] = useReducer(reducer, initialState);
   console.log("\n###BASESTATE", state,"allSelected",state.allSelected)
   if (clearSelection){
-    if (props.route){
-      history.push("/")
+    // if (props.route){
+    //   history.push("/")
+    // }
+    //Update blurNum
+    if (!props.alwaysSelected){
+      dispatch({ type: "CLEARALLSELECTED" })
     }
-    dispatch({ type: "CLEARALLSELECTED" })
     setClearSelection(false);
   }
-  if (props.route && props.route.location.pathname !== prevPath){
+  if (props.route && props.route.location.pathname !== prevPath && props.route.location.pathname !== "/"){
     dispatch({type: "ROUTEPATH", payload: {path:props.route.location.pathname,browserId,loadedNodeObj}})
     setPrevPath(props.route.location.pathname);
   }
@@ -400,12 +403,12 @@ function deselectVisibleTree({allSelected,loadedNodeObj,nodeId,newAllUpdates,sta
 
 function openPathToFolderId({loadedNodeObj,newAllUpdates,nodeId}){
   const nodeObj = (newAllUpdates[nodeId]) ? newAllUpdates[nodeId] : loadedNodeObj[nodeId];
-  if (!nodeObj.isOpen){
+  if (nodeObj && !nodeObj.isOpen){
     let newNodeObj = {...nodeObj};
     newNodeObj.isOpen = true;
     newAllUpdates[nodeId] = newNodeObj;
   }
-  if (nodeObj.parentId !== "root"){
+  if (nodeObj && nodeObj.parentId !== "root"){
     openPathToFolderId({loadedNodeObj,newAllUpdates,nodeId:nodeObj.parentId})
   }
 }
@@ -457,8 +460,8 @@ function reducer(state, action) {
         //If came from another browser then open to path and select
         if (action.payload.browserId !== routeBrowserId){
           openPathToFolderId({loadedNodeObj,newAllUpdates,nodeId:targetFolderId});
-          // deselectAll({loadedNodeObj,newAllUpdates,newAllSelected})
-          // selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:targetFolderId,newAllUpdates})
+          deselectAll({loadedNodeObj,newAllUpdates,newAllSelected})
+          selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:targetFolderId,newAllUpdates})
         }
       return { ...state, allUpdates:newAllUpdates,allSelected:newAllSelected };
       // return { ...state, allUpdates:newAllUpdates,nodeIdsArr,allSelected:newAllSelected,mode };
