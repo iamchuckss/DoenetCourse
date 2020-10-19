@@ -33,8 +33,11 @@ function Experiment(props){
     setLoadedNodeObj(props.loadedNodeObj);
     if (props.actionObj.action === "START"){
       console.log(">>> START!");
-      // const [varA,varB] = props.route.location.pathname.split("/").filter(i=>i);
-      // setLoadedNodeObj({varA,varB})
+      if (props.route.location.pathname !== "/"){
+          const [varA,varB] = props.route.location.pathname.split("/").filter(i=>i);
+          setLoadedNodeObj({varA,varB})
+      }
+     
     }
   },[]);
   console.log(`=======START OF ${props.name}`,loadedNodeObj,props.route.location.pathname)
@@ -43,13 +46,13 @@ function Experiment(props){
       console.log(">>>actionObj",props.actionObj)
       if (props.actionObj.source !== browserId){
         if (props.actionObj.action === "addVarA"){
-          let newA = loadedNodeObj.varA + 1;
+          let newA = Number(loadedNodeObj.varA) + 1;
           let newLoadedNodeObj = {...loadedNodeObj};
           newLoadedNodeObj.varA = newA;
           setLoadedNodeObj(newLoadedNodeObj);
         }
         if (props.actionObj.action === "addVarB"){
-          let newB = loadedNodeObj.varB + 1;
+          let newB = Number(loadedNodeObj.varB) + 1;
           let newLoadedNodeObj = {...loadedNodeObj};
           newLoadedNodeObj.varB = newB;
           setLoadedNodeObj(newLoadedNodeObj);
@@ -66,7 +69,7 @@ function Experiment(props){
   return <>
   <h2>{props.name}</h2>
   <div>var A {loadedNodeObj.varA} <button onClick={()=>{
-    let newA = loadedNodeObj.varA + 1;
+    let newA = Number(loadedNodeObj.varA) + 1;
       const path = "/"+newA+"/"+loadedNodeObj.varB+"/";
       history.push(path);
       let newLoadedNodeObj = {...loadedNodeObj};
@@ -77,7 +80,7 @@ function Experiment(props){
     }
   }>+</button></div>
   <div>var B {loadedNodeObj.varB} <button onClick={()=>{
-    let newB = loadedNodeObj.varB + 1;
+    let newB = Number(loadedNodeObj.varB) + 1;
       const path = "/"+loadedNodeObj.varA+"/"+newB+"/";
       history.push(path);
       let newLoadedNodeObj = {...loadedNodeObj};
@@ -105,11 +108,12 @@ export default function temp(){
       payload
     })
   }
+
+
   return <>
-  <Router>
       <ExperimentRouted name="ExperimentRouted 1" loadedNodeObj={contentNodeObj} actionObj={actionObj} externalDispatch={externalDispatch} />
       <ExperimentRouted name="ExperimentRouted 2" loadedNodeObj={contentNodeObj} actionObj={actionObj} externalDispatch={externalDispatch} />
-      </Router>
+  
     {/* <div style={{display:"flex",justifyContent:"space-between"}}>
       <div>
       <h1>Nav</h1>
