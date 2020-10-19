@@ -358,7 +358,6 @@ function reducer(state, action) {
         selectVisibleTree({allSelected:newAllSelected,loadedNodeObj,nodeId:action.payload.nodeId,newAllUpdates,startWithChildren:true})
       }
 
-
       return { ...state, allUpdates:newAllUpdates,allSelected:newAllSelected };
     }
     case 'CLICKITEM': {
@@ -539,6 +538,12 @@ function reducer(state, action) {
         return { ...state, dragState: newDragState };
       }
 
+      // open up dropTarget if not already opened
+      if (dropTargetNode && !dropTargetNode["isOpen"]) {
+        dropTargetNode["isOpen"] = true;
+        newDragState[dropTargetId] = dropTargetNode;
+      }
+      
       let dropTargetParentChildList = [...dropTargetParentNode.childNodeIds];      
 
       // if dragged into another parent / initial drag
