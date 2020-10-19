@@ -5,10 +5,8 @@ import WithDropTarget from "./dropTarget";
 import WithDragItem from "./dragItem";
 import {
   HashRouter as Router,
-  Switch,
-  Route,
-  Link,
-  useHistory
+  useHistory,
+  useParams
 } from "react-router-dom";
 
 export default function Browser(props) {
