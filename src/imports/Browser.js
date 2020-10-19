@@ -607,12 +607,22 @@ function reducer(state, action) {
           if (shadowIndex > -1) {
             previousList.splice(shadowIndex, 0, draggedItemId)
           }
-          console.log("Here", previousList, shadowIndex, draggedItemId, previousParentId)
           previousParentNode.childNodeIds = previousList;
+          previousParentNode.isOpen = true;
           draggedItemNodeObj.parentId = previousParentId;
           newAllUpdates[draggedItemId] = draggedItemNodeObj;
           newAllUpdates[previousParentId] = previousParentNode;
         }             
+
+        // set previousParent and all its parent to be open
+        let currentId = previousParentId;
+        let currentNode = getNodeObj({id:previousParentId, stateList:[newAllUpdates, loadedNodeObj]})
+        while (currentId != "root" && currentNode != null) {
+          currentNode.isOpen = true;
+          newAllUpdates[currentId] = currentNode;
+          currentId = currentNode.parentId;
+          currentNode = getNodeObj({id:currentNode.parentId, stateList:[newAllUpdates, loadedNodeObj]});
+        }
       }      
 
       return { ...state, dragState: newDragState, allUpdates: newAllUpdates, validDrop: true };
@@ -635,7 +645,6 @@ function reducer(state, action) {
         previousParentNode.childNodeIds = previousList;
         newAllUpdates[previousParentId] = previousParentNode;
       }
-      console.log("Here", state.dragState, newAllUpdates)
 
       return { ...state, draggedItemData: null, allUpdates: newAllUpdates, dragState: {}, validDrop: false, allSelected: [] }
     }
