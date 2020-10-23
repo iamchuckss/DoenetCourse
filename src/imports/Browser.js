@@ -110,7 +110,7 @@ export default function Browser(props) {
       'a1': {
         label: "Assignment 1",
         appearance: "default",
-        parentId: "f5",
+        parentId: "rr1",
         type: "assignment",
         assignmentId: "a1assignmentId",
         contentId: "a1contentId",
@@ -119,7 +119,7 @@ export default function Browser(props) {
       'a2': {
         label: "Assignment 2",
         appearance: "default",
-        parentId: "f5",
+        parentId: "rr1",
         type: "assignment",
         assignmentId: "a2assignmentId",
         contentId: "a2contentId",
@@ -737,9 +737,10 @@ function reducer(state, action) {
         previousParentNode.childNodeIds = previousList;
         newDragState[previousParentId] = previousParentNode;
 
+        state.draggedItemData
         // add new shadow
         const draggedShadowNodeObj = {
-          label: "SHADOW",
+          label: "",
           childNodeIds: [],
           isOpen: false,
           type: "folder",
