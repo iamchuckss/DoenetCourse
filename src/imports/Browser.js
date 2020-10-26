@@ -198,7 +198,7 @@ export default function Browser(props) {
   }
 
   const createDragItem = (id, element) => {
-    const onDragStart = () => {
+    const onDragStart = (ev, id) => {
       let draggedItemIds = new Set(state.allSelected);
 
       if (draggedItemIds.has(id)) {
@@ -234,6 +234,9 @@ export default function Browser(props) {
           transferDispatch('TOGGLEFOLDER', { nodeId: draggedItemId, nodeObj: dragItemObj })
         }      
       }
+
+      let elem = document.createElement("div");
+      ev.dataTransfer.setDragImage(elem, 0, 0);
       
       transferDispatch("DRAGSTART", { draggedItemIds: draggedItemIds });
     } 
@@ -862,7 +865,7 @@ const Node = React.memo(function Node(props) {
     e.preventDefault();
     e.stopPropagation();
     props.transferDispatch('DELETENODES', { nodeId: props.nodeId, nodeObj: props.nodeObj })
-    // props.actions().toggleFolder(props.nodeId,props.nodeObj);
+    props.actions().toggleFolder(props.nodeId,props.nodeObj);
   }}>X</button>
 
  

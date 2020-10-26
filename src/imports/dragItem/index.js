@@ -8,11 +8,11 @@ const WithDragItem = ({ children, dragEffect, id, onDragStart, onDragOver, onDra
     id,
     effect: dragEffect,
     ref: dragRef,
-    onDragStart: () => {
-      onDragStart && onDragStart(id);
-      let dragImage = document.createElement("img");
-      dragImage.style.visibility = "hidden";
-      event.dataTransfer.setDragImage(dragImage, 0, 0);
+    onDragStart: (ev) => {
+      onDragStart && onDragStart(ev, id);
+      // let dragImage = document.createElement("img");
+      // dragImage.style.visibility = "hidden";
+      // event.dataTransfer.setDragImage(dragImage, 0, 0);
     },
     onDragOver: (ev) => onDragOver && onDragOver(ev, id),
     onDragEnd: () => onDragEnd && onDragEnd()
