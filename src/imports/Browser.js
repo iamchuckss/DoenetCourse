@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useReducer, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useReducer, useEffect, useRef } from 'react';
 import '../Tools/util.css';
 import nanoid from 'nanoid';
 import WithDropTarget from "./dropTarget";
@@ -235,7 +235,7 @@ export default function Browser(props) {
         }      
       }
       
-      transferDispatch("DRAGSTART", { draggedItemIds: draggedItemIds, ev: ev });
+      transferDispatch("DRAGSTART", { draggedItemIds: draggedItemIds, ev: ev, browserId: browserId });
     } 
     
     const onDragOver = (ev, id) => {
@@ -243,7 +243,7 @@ export default function Browser(props) {
     }
 
     const onDragEnd = () => {
-      transferDispatch("DRAGEND", {});
+      transferDispatch("DRAGEND", {browserId: browserId });
     }
 
     return (
@@ -294,7 +294,7 @@ export default function Browser(props) {
       selectOnlyOne={props.selectOnlyOne}
       numChildren={numChildren}
       />;
-      const draggableAndDroppableNodeItem = createDnDItem(props.browserId, id, nodeItem);
+      const draggableAndDroppableNodeItem = createDnDItem(browserId, id, nodeItem);
       nodes.push(draggableAndDroppableNodeItem);
       // nodes.push(nodeItem);
       if ((nodeObjI.type === "folder" || nodeObjI.type === "repo") && nodeObjI.isOpen) {
@@ -365,7 +365,7 @@ export default function Browser(props) {
     dispatch({ type: "ADDNODES",payload:{loadedNodeObj,nodes:[nodeObj],selectOnlyOne:props.selectOnlyOne}})
       }}>Add URL</button>
     {nodes}
-    <DragGhost id="drag-ghost" numItems={state.mode == "DRAGGING" ? state.draggedItemData.draggedItemIds.size : 0} element={<div>Test</div>} />
+    <DragGhost id={`drag-ghost-${browserId}`} numItems={state.mode == "DRAGGING" ? state.draggedItemData.draggedItemIds.size : 0} element={<div>Test</div>} />
   </>
 }
 
@@ -692,7 +692,8 @@ function reducer(state, action) {
         newDragState[id] = draggedNode;
       }      
 
-      const crt = document.getElementById('drag-ghost')
+      const crt = document.getElementById(`drag-ghost-${action.payload.browserId}`)
+      console.log(action.payload.browserId)
       crt.style.position = 'absolute'
       crt.style.top = '-500px'
       crt.style.right = '-5000px'
@@ -843,7 +844,7 @@ function reducer(state, action) {
         newAllUpdates[previousParentId] = previousParentNode;
       }
 
-      const crt = document.getElementById('drag-ghost')
+      const crt = document.getElementById(`drag-ghost-${action.payload.browserId}`)
       crt.style.opacity = 0
       document.body.appendChild(crt)
 
