@@ -185,7 +185,7 @@ export default function Browser(props) {
     return null;
   }
 
-  const createDropTarget = (id, element) => {
+  const createDropTarget = (browserId, id, element) => {
     const onDrop = () => {
       transferDispatch("DROP", {dropTargetId: id});
     }
@@ -197,7 +197,7 @@ export default function Browser(props) {
     )
   }
 
-  const createDragItem = (id, element) => {
+  const createDragItem = (browserId, id, element) => {
     const onDragStart = (ev, id) => {
       let draggedItemIds = new Set(state.allSelected);
 
@@ -234,11 +234,8 @@ export default function Browser(props) {
           transferDispatch('TOGGLEFOLDER', { nodeId: draggedItemId, nodeObj: dragItemObj })
         }      
       }
-
-      let elem = document.createElement("div");
-      ev.dataTransfer.setDragImage(elem, 0, 0);
       
-      transferDispatch("DRAGSTART", { draggedItemIds: draggedItemIds });
+      transferDispatch("DRAGSTART", { draggedItemIds: draggedItemIds, ev: ev });
     } 
     
     const onDragOver = (ev, id) => {
@@ -256,9 +253,9 @@ export default function Browser(props) {
     )
   }
 
-  const createDnDItem = (id, element) => {
-    const draggableNodeItem = createDragItem(id, element);
-    const draggableAndDroppableNodeItem = createDropTarget(id, draggableNodeItem);
+  const createDnDItem = (browserId, id, element) => {
+    const draggableNodeItem = createDragItem(browserId, id, element);
+    const draggableAndDroppableNodeItem = createDropTarget(browserId, id, draggableNodeItem);
     return draggableAndDroppableNodeItem;
   }
 
@@ -297,7 +294,7 @@ export default function Browser(props) {
       selectOnlyOne={props.selectOnlyOne}
       numChildren={numChildren}
       />;
-      const draggableAndDroppableNodeItem = createDnDItem(id, nodeItem);
+      const draggableAndDroppableNodeItem = createDnDItem(props.browserId, id, nodeItem);
       nodes.push(draggableAndDroppableNodeItem);
       // nodes.push(nodeItem);
       if ((nodeObjI.type === "folder" || nodeObjI.type === "repo") && nodeObjI.isOpen) {
@@ -308,7 +305,7 @@ export default function Browser(props) {
     if (numInParent < 1) {
       const emptyNodeId = `EMPTY-${parentFolderId}`;
       const emptyNode = <Node key={`node${level}-0${parent}`} level={level} empty={true} />;
-      nodes.push(createDnDItem(emptyNodeId, emptyNode));
+      nodes.push(createDnDItem(props.browserId, emptyNodeId, emptyNode));
     }
   }
 
@@ -368,6 +365,7 @@ export default function Browser(props) {
     dispatch({ type: "ADDNODES",payload:{loadedNodeObj,nodes:[nodeObj],selectOnlyOne:props.selectOnlyOne}})
       }}>Add URL</button>
     {nodes}
+    <DragGhost id="drag-ghost" numItems={state.mode == "DRAGGING" ? state.draggedItemData.draggedItemIds.size : 0} element={<div>Test</div>} />
   </>
 }
 
@@ -694,7 +692,17 @@ function reducer(state, action) {
         newDragState[id] = draggedNode;
       }      
 
-      return { ...state, draggedItemData: draggedItemData, dragState: newDragState }
+      const crt = document.getElementById('drag-ghost')
+      crt.style.position = 'absolute'
+      crt.style.top = '-500px'
+      crt.style.right = '-5000px'
+      crt.style.opacity = 1
+      crt.style.zIndex = -1
+      document.body.appendChild(crt)
+      console.log("Here", crt)
+      action.payload.ev.dataTransfer.setDragImage(crt, 0, 0)
+
+      return { ...state, draggedItemData: draggedItemData, dragState: newDragState, mode: "DRAGGING" }
     }
     case 'DRAGOVER': { 
       const { previousParentId } = { ...state.draggedItemData };
@@ -835,7 +843,11 @@ function reducer(state, action) {
         newAllUpdates[previousParentId] = previousParentNode;
       }
 
-      return { ...state, draggedItemData: null, allUpdates: newAllUpdates, dragState: {}, validDrop: false, allSelected: [] }
+      const crt = document.getElementById('drag-ghost')
+      crt.style.opacity = 0
+      document.body.appendChild(crt)
+
+      return { ...state, draggedItemData: null, allUpdates: newAllUpdates, dragState: {}, validDrop: false, allSelected: [], mode: "READY" }
     }
     default:
       throw new Error(`Unhandled type in reducer ${action, action.type}`);
@@ -1102,3 +1114,78 @@ const Node = React.memo(function Node(props) {
   }
   
 })
+
+const DragGhost = ({ id, element, numItems }) => {
+
+  return (
+    <div id={id} style={{position: 'absolute',}}>
+    {
+      numItems < 2 ? 
+        <div
+          style={{
+            boxShadow: 'rgba(0, 0, 0, 0.20) 0px 0px 3px 3px',
+            borderRadius: '4px',
+            background: 'lightblue',
+            width: '100px',
+            height: '50px',
+            animation: 'dragAnimation 2s',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          {element}
+        </div>
+      :
+      <div>
+        <div
+          style={{
+            position: 'absolute',
+            zIndex: "5",
+            top: "-10px",
+            right: "-10px",
+            borderRadius: '25px',
+            background: '#ab0000',
+            fontSize: '12px',
+            color: 'white',
+            width: '25px',
+            height: '25px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}>
+          {numItems}
+        </div>
+        <div
+          style={{
+            boxShadow: 'rgba(0, 0, 0, 0.20) 0px 0px 3px 3px',
+            borderRadius: '4px',
+            background: 'lightblue',
+            width: '105px',
+            height: '55px',
+            display: 'flex',
+            justifyContent: 'flex-start',
+            alignItems: 'flex-start',
+            zIndex: "1"
+          }}>
+          <div
+            style={{
+              borderRadius: '4px',
+              background: 'lightblue',
+              position: 'absolute',
+              width: '100px',
+              height: '50px',
+              boxShadow: 'rgba(0, 0, 0, 0.20) 0px 0px 3px 2px',
+              border: '1px solid rgba(0, 0, 0, 0.20)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: "2"
+            }}>
+            {element}
+          </div>
+        </div>
+      </div>
+    }      
+    </div>
+  )
+}

@@ -121,11 +121,11 @@ export default function temp(){
       </div>
       <div>
       <h1>Main</h1>
-      <BrowserRouted loadedNodeObj={contentNodeObj} externalDispatch={externalDispatch} />
+      <BrowserRouted browserId={"1"} loadedNodeObj={contentNodeObj} externalDispatch={externalDispatch} />
       </div>
       <div>
       <h1>Support</h1>
-      <BrowserRouted externalDispatch={externalDispatch} />
+      <BrowserRouted browserId={"2"} externalDispatch={externalDispatch} />
       </div>
       {/* <div>
       <h1>Regular Browser</h1> 
