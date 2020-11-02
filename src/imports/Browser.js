@@ -328,6 +328,17 @@ export default function Browser(props) {
     return numChildren;
   }
 
+  function renderDragGhost() {
+
+    const dragGhostId = `drag-ghost-${browserId}`;
+    const numItems = state.mode == "DRAGGING" ? state.draggedItemData.draggedItemIds.size : 0;
+    const innerNode = state.mode == "DRAGGING" && state.draggedItemData.draggedNodeElement ?
+      state.draggedItemData.draggedNodeElement :
+      <div>Test</div>;    
+    
+    return <DragGhost id={dragGhostId} numItems={numItems} element={innerNode} />;
+  }
+
 
   return <>
   
@@ -365,7 +376,7 @@ export default function Browser(props) {
     dispatch({ type: "ADDNODES",payload:{loadedNodeObj,nodes:[nodeObj],selectOnlyOne:props.selectOnlyOne}})
       }}>Add URL</button>
     {nodes}
-    <DragGhost id={`drag-ghost-${browserId}`} numItems={state.mode == "DRAGGING" ? state.draggedItemData.draggedItemIds.size : 0} element={<div>Test</div>} />
+    { renderDragGhost() }
   </>
 }
 
@@ -683,7 +694,8 @@ function reducer(state, action) {
       const draggedItemData = {
         previousParentId: lastSelectedObj.parentId,
         sourceParentId: lastSelectedObj.parentId,
-        draggedItemIds: new Set(draggedItemIds)
+        draggedItemIds: new Set(draggedItemIds),
+        draggedNodeElement: <div dangerouslySetInnerHTML={{ __html: action.payload.ev.currentTarget.outerHTML }}/>,
       }
       
       for (let id of draggedItemIds) {
@@ -700,7 +712,6 @@ function reducer(state, action) {
       crt.style.opacity = 1
       crt.style.zIndex = -1
       document.body.appendChild(crt)
-      console.log("Here", crt)
       action.payload.ev.dataTransfer.setDragImage(crt, 0, 0)
 
       return { ...state, draggedItemData: draggedItemData, dragState: newDragState, mode: "DRAGGING" }
@@ -886,11 +897,15 @@ const Node = React.memo(function Node(props) {
 
   let bgcolor = "#e2e2e2";
   if (props.nodeObj.appearance === "selected") { bgcolor = "#6de5ff"; }
-  if (props.nodeObj.appearance === "dropperview") { bgcolor = "#53ff47"; }
+  if (props.nodeObj.appearance === "dropperview") { return <div style={{
+    // width: "300px",
+    height: "25px",
+    border: "2px dotted #37ceff",
+    backgroundColor: "white",
+    margin: "2px",
+    marginLeft: `${props.level * indentPx}px`
+  }} /> }
   if (props.nodeObj.appearance === "dragged") { bgcolor = "#f3ff35"; }  
-
-
-
 
   if (props.nodeObj.type === "folder"){
     //**** FOLDER *****
@@ -1119,33 +1134,30 @@ const Node = React.memo(function Node(props) {
 const DragGhost = ({ id, element, numItems }) => {
 
   return (
-    <div id={id} style={{position: 'absolute',}}>
+    <div id={id} style={{position: 'absolute', opacity: "0" }}>
     {
       numItems < 2 ? 
         <div
           style={{
             boxShadow: 'rgba(0, 0, 0, 0.20) 0px 0px 3px 3px',
             borderRadius: '4px',
-            background: 'lightblue',
-            width: '100px',
-            height: '50px',
             animation: 'dragAnimation 2s',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
           }}>
-          {element}
+          { element }
         </div>
       :
-      <div>
+      <div style={{minWidth: "300px"}}>
         <div
           style={{
             position: 'absolute',
             zIndex: "5",
             top: "-10px",
-            right: "-10px",
+            right: "-15px",
             borderRadius: '25px',
-            background: '#ab0000',
+            background: '#bc0101',
             fontSize: '12px',
             color: 'white',
             width: '25px',
@@ -1158,11 +1170,9 @@ const DragGhost = ({ id, element, numItems }) => {
         </div>
         <div
           style={{
-            boxShadow: 'rgba(0, 0, 0, 0.20) 0px 0px 3px 3px',
+            boxShadow: 'rgba(0, 0, 0, 0.30) 5px 3px 3px 0px',
             borderRadius: '4px',
-            background: 'lightblue',
-            width: '105px',
-            height: '55px',
+            padding: "0 5px 5px 0",
             display: 'flex',
             justifyContent: 'flex-start',
             alignItems: 'flex-start',
@@ -1171,10 +1181,6 @@ const DragGhost = ({ id, element, numItems }) => {
           <div
             style={{
               borderRadius: '4px',
-              background: 'lightblue',
-              position: 'absolute',
-              width: '100px',
-              height: '50px',
               boxShadow: 'rgba(0, 0, 0, 0.20) 0px 0px 3px 2px',
               border: '1px solid rgba(0, 0, 0, 0.20)',
               display: 'flex',
@@ -1182,7 +1188,7 @@ const DragGhost = ({ id, element, numItems }) => {
               alignItems: 'center',
               zIndex: "2"
             }}>
-            {element}
+            { element }
           </div>
         </div>
       </div>
