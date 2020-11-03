@@ -306,7 +306,7 @@ export default function Browser(props) {
     //Add empty node if open folder is empty
     if (numInParent < 1) {
       const emptyNodeId = `EMPTY-${parentFolderId}`;
-      const emptyNode = <div><Node key={`node${level}-0${parent}`} level={level} empty={true} /></div>;
+      const emptyNode = <Node key={`node${level}-0${parent}`} level={level} empty={true} />;
       nodes.push(createDnDItem(props.browserId, emptyNodeId, emptyNode));
     }
   }
@@ -377,7 +377,7 @@ export default function Browser(props) {
       nodeObj[Id] = node;
     dispatch({ type: "ADDNODES",payload:{loadedNodeObj,nodes:[nodeObj],selectOnlyOne:props.selectOnlyOne}})
       }}>Add URL</button>
-    {nodes}
+    <div>{nodes}</div>
     { renderDragGhost() }
   </>
 }
@@ -1134,7 +1134,7 @@ const Node = React.memo(function Node(props) {
 const DragGhost = ({ id, element, numItems }) => {
 
   return (
-    <div id={id} style={{position: 'absolute', opacity: "0" }}>
+    <div id={id} style={{position: 'absolute', opacity: "0", top: "-500px" }}>
     {
       numItems < 2 ? 
         <div
