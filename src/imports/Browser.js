@@ -896,6 +896,7 @@ const Node = React.memo(function Node(props) {
 
 
   let bgcolor = "#e2e2e2";
+  let transition = "background-color 250ms";
   if (props.nodeObj.appearance === "selected") { bgcolor = "#6de5ff"; }
   if (props.nodeObj.appearance === "dropperview") { return <div style={{
     // width: "300px",
@@ -955,6 +956,7 @@ const Node = React.memo(function Node(props) {
       width: "300px",
       padding: "4px",
       border: "1px solid black",
+      transition: transition,
       backgroundColor: bgcolor,
       margin: "2px"
     }} ><div 
@@ -1010,6 +1012,7 @@ const Node = React.memo(function Node(props) {
       width: "300px",
       padding: "4px",
       border: "1px solid black",
+      transition: transition,
       backgroundColor: bgcolor,
       margin: "2px"
     }} ><div 
@@ -1046,6 +1049,7 @@ const Node = React.memo(function Node(props) {
       width: "300px",
       padding: "4px",
       border: "1px solid black",
+      transition: transition,
       backgroundColor: bgcolor,
       margin: "2px"
     }} ><div 
@@ -1082,6 +1086,7 @@ const Node = React.memo(function Node(props) {
       width: "300px",
       padding: "4px",
       border: "1px solid black",
+      transition: transition,
       backgroundColor: bgcolor,
       margin: "2px"
     }} ><div 
@@ -1118,6 +1123,7 @@ const Node = React.memo(function Node(props) {
       width: "300px",
       padding: "4px",
       border: "1px solid black",
+      transition: transition,
       backgroundColor: bgcolor,
       margin: "2px"
     }} ><div 
