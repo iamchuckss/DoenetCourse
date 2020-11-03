@@ -208,10 +208,11 @@ export default function Browser(props) {
         while (processQueue.length != 0) {
           const currentNodeObjId = processQueue.pop();
           const currentNodeObj = getNodeObj({id:currentNodeObjId, stateList:[state.dragState, state.allUpdates, loadedNodeObj]});
+          if (!currentNodeObj.childNodeIds) continue;
           for (let childNodeObjId of currentNodeObj.childNodeIds) {
             if (draggedItemIds.has(childNodeObjId)) {
               draggedItemIds.delete(childNodeObjId);
-              processQueue = processQueue.splice(processQueue.findIndex(id => id == childNodeObjId), 1);
+              processQueue = processQueue.filter(id => id == childNodeObjId);
             } else {
               processQueue.push(childNodeObjId);
             }          
@@ -223,6 +224,7 @@ export default function Browser(props) {
         setClearSelection(true);
         draggedItemIds = [id]
       }
+
       
       // temp placeholder solution for drag selection
       if (draggedItemIds.length == 0) draggedItemIds = [id];
@@ -304,7 +306,7 @@ export default function Browser(props) {
     //Add empty node if open folder is empty
     if (numInParent < 1) {
       const emptyNodeId = `EMPTY-${parentFolderId}`;
-      const emptyNode = <Node key={`node${level}-0${parent}`} level={level} empty={true} />;
+      const emptyNode = <div><Node key={`node${level}-0${parent}`} level={level} empty={true} /></div>;
       nodes.push(createDnDItem(props.browserId, emptyNodeId, emptyNode));
     }
   }
@@ -690,7 +692,6 @@ function reducer(state, action) {
       // set previousParent to last item in selected
       const lastSelectedId = draggedItemIds[draggedItemIds.length - 1];
       const lastSelectedObj = getNodeObj({id:lastSelectedId, stateList:[newDragState, state.allUpdates, loadedNodeObj]})
-
       const draggedItemData = {
         previousParentId: lastSelectedObj.parentId,
         sourceParentId: lastSelectedObj.parentId,
@@ -705,7 +706,6 @@ function reducer(state, action) {
       }      
 
       const crt = document.getElementById(`drag-ghost-${action.payload.browserId}`)
-      console.log(action.payload.browserId)
       crt.style.position = 'absolute'
       crt.style.top = '-500px'
       crt.style.right = '-5000px'
