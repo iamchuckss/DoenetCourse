@@ -147,7 +147,7 @@ function Browser(props){
       cache.invalidateQueries(["browser",obj.driveId])
     // })
   }});
-  const { dropState, dropActions } = useContext(DropTargetsContext);;
+  const { dropState, dropActions } = useContext(DropTargetsContext);
 
   const [sortingOrder, setSortingOrder] = useState("alphabetical label ascending")
   const [toggleNodeId,setToggleNode] = useState([]);
@@ -224,6 +224,22 @@ function Browser(props){
     setSelectedNodes({})
   })
 
+  const onDragStart = ({ id }) => {
+    console.log("dragStart");
+  };
+
+  const onDrag = ({ clientX, clientY, translation, id }) => {
+    dropActions.handleDrag(clientX, clientY, id);
+  };
+
+  const onDragOverContainer = ({ id }) => {
+    console.log("onDragOver", id);
+  };
+
+  const onDragEnd = () => {
+    dropActions.handleDrop();
+  };
+
  
   // //------------------------------------------
   // //****** End of use functions  ***********
@@ -299,7 +315,7 @@ function Browser(props){
           appearance = "selected";
         }
 
-        nodesJSX.push(<Node 
+        let nodeObj = <Node 
           key={`node${node.id}`} 
           browserId={browserId.current}
           nodeId={node.id}
@@ -311,7 +327,30 @@ function Browser(props){
           handleFolderToggle={handleFolderToggle} 
           handleClickNode={handleClickNode}
           handleDeselectAll={handleDeselectAll}
-          level={level}/>)
+          level={level}/>;
+
+        nodeObj = <Draggable
+          id={`draggable${node.id}`}
+          onDragStart={onDragStart}
+          onDrag={onDrag}
+          onDragEnd={onDragEnd}
+        >
+         { nodeObj } 
+        </Draggable>
+
+        nodeObj = <WithDropTarget
+          id={node.id}
+          dropProps={{dropState: dropState, dropActions: dropActions}}
+          dropCallbacks={{
+            onDragOver: () => onDragOverContainer({ id: node.id }),
+            onDrop: () => {}
+          }}
+        >
+          { nodeObj } 
+        </WithDropTarget>
+
+        nodesJSX.push(nodeObj);
+
         if (isOpen){
           buildNodes({driveId,parentId:node.id,sortingOrder,nodesJSX,nodeIdArray,level:level+1})
         }

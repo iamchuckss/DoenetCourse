@@ -101,11 +101,12 @@ const Draggable = ({ children, id, onDragStart, onDrag, onDragEnd }) => {
 
   return (
     <div
+      key={id}
       style={styles}
       onMouseDown={handleMouseDown}
       onTouchStart={handleMouseDown}
     >
-      {children}
+      { children }
     </div>
   );
 };
