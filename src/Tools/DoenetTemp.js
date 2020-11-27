@@ -17,26 +17,33 @@ import {
   Route,
   useHistory
 } from "react-router-dom";
+import {
+  DropTargetsProvider,
+  WithDropTarget
+} from '../imports/DropTarget';
+import Draggable from '../imports/Draggable';
+
 const queryCache = new QueryCache();
 
 export default function app() {
 return <>
-<ReactQueryCacheProvider queryCache={queryCache}>
-  <AddNode type="Folder" />
-  {/* <AddNode type="DoenetMl" /> */}
-  <div style={{display:"flex"}}> 
-  <div>
-  <BrowserRouted drive="content" isNav={true} />
-  <BrowserRouted drive="assignment" isNav={true} />
-  </div>
-  <div>
-  <BrowserRouted drive="content" />
-  <BrowserRouted drive="assignment" />
-  </div>
-  </div>
-  <ReactQueryDevtools />
-
-</ReactQueryCacheProvider>
+<DropTargetsProvider>
+  <ReactQueryCacheProvider queryCache={queryCache}>
+    <AddNode type="Folder" />
+    {/* <AddNode type="DoenetMl" /> */}
+    <div style={{display:"flex"}}> 
+    <div>
+    <BrowserRouted drive="content" isNav={true} />
+    <BrowserRouted drive="assignment" isNav={true} />
+    </div>
+    <div>
+    <BrowserRouted drive="content" />
+    <BrowserRouted drive="assignment" />
+    </div>
+    </div>
+    <ReactQueryDevtools />
+  </ReactQueryCacheProvider>
+</DropTargetsProvider>
 </>
 };
 
@@ -276,7 +283,6 @@ function Browser(props){
           setRefresh((x)=>x+1)
         })
     }else{
-
       let nodeArray = getSortedChildren(driveId,parentId,sortingOrder);
       if (nodeArray.length === 0){nodesJSX.push(<EmptyNode key={`empty${nodeIdArray.length}`}/>)}
       for (const node of nodeArray){
