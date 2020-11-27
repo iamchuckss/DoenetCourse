@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useRef
 } from "react";
+import { DropTargetsContext } from "./context";
 
 export default function DropTargetsProvider({ children }) {
   const [draggedObject, setDraggedObject] = useState(null);
@@ -80,5 +81,7 @@ export default function DropTargetsProvider({ children }) {
     }
   };
 
-  return <div>{React.cloneElement(children, { dropProps: state })}</div>;
+  return <DropTargetsContext.Provider value={state}>
+    { children }
+    </DropTargetsContext.Provider>
 }

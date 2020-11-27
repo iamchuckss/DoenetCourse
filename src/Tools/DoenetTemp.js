@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useEffect, useRef} from 'react';
+import React, {useState, useCallback, useEffect, useRef, useContext} from 'react';
 import {
   useQuery,
   useQueryCache,
@@ -19,7 +19,8 @@ import {
 } from "react-router-dom";
 import {
   DropTargetsProvider,
-  WithDropTarget
+  DropTargetsContext,
+  WithDropTarget  
 } from '../imports/DropTarget';
 import Draggable from '../imports/Draggable';
 
@@ -146,6 +147,7 @@ function Browser(props){
       cache.invalidateQueries(["browser",obj.driveId])
     // })
   }});
+  const { dropState, dropActions } = useContext(DropTargetsContext);;
 
   const [sortingOrder, setSortingOrder] = useState("alphabetical label ascending")
   const [toggleNodeId,setToggleNode] = useState([]);
