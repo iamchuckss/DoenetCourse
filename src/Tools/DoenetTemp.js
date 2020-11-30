@@ -153,6 +153,7 @@ function Browser(props){
   const [toggleNodeId,setToggleNode] = useState([]);
   const [openNodesObj,setOpenNodesObj] = useState({});
   const [selectedNodes,setSelectedNodes] = useState({});
+  const [draggedId, setDraggedId] = useState(null);
   const [refreshNumber,setRefresh] = useState(0)
 
   let nodeIdRefArray = useRef([])
@@ -225,7 +226,7 @@ function Browser(props){
   })
 
   const onDragStart = ({ id }) => {
-    console.log("dragStart");
+    setDraggedId(id);
   };
 
   const onDrag = ({ clientX, clientY, translation, id }) => {
@@ -233,13 +234,12 @@ function Browser(props){
   };
 
   const onDragOverContainer = ({ id }) => {
-    console.log("onDragOver", id);
+    // console.log("onDragOver", id);
   };
 
   const onDragEnd = () => {
     dropActions.handleDrop();
   };
-
  
   // //------------------------------------------
   // //****** End of use functions  ***********
@@ -261,6 +261,19 @@ function Browser(props){
     }
     //Only show non navigation when drive matches route
   if (!props.isNav && routePathDriveId !== props.drive){ return null;}
+
+  function renderDragGhost(element) {
+    const dragGhostId = `drag-ghost-${props.driveId}`;
+    // const numItems = state.mode == "DRAGGING" ? state.draggedItemData.draggedItemIds.size : 0;
+    // const innerNode = state.mode == "DRAGGING" && state.draggedItemData.draggedNodeElement ?
+    //   state.draggedItemData.draggedNodeElement :
+    //   <div>Test</div>;    
+
+    const numItems = 4;
+    const innerNode = <div>Test</div>;    
+    
+    return <DragGhost id={dragGhostId} numItems={numItems} element={element} />;
+  }
   
 
 
@@ -313,6 +326,10 @@ function Browser(props){
           appearance = "selected";
         }else if (selectedNodes[node.id]){ 
           appearance = "selected";
+        } else if (draggedId === node.id) {
+          appearance = "dragged";
+        } else if (dropState.activeDropTargetId === node.id) {
+          appearance = "dropperview";
         }
 
         let nodeObj = <Node 
@@ -330,10 +347,11 @@ function Browser(props){
           level={level}/>;
 
         nodeObj = <Draggable
-          id={`draggable${node.id}`}
+          id={node.id}
           onDragStart={onDragStart}
           onDrag={onDrag}
           onDragEnd={onDragEnd}
+          ghostElement={renderDragGhost(nodeObj)}
         >
          { nodeObj } 
         </Draggable>
@@ -481,3 +499,69 @@ const LoadingNode =  React.memo(function Node(props){
   </>
 // }
 })
+
+const DragGhost = ({ id, element, numItems }) => {
+
+  return (
+    <div id={id}>
+    {
+      numItems < 2 ? 
+        <div
+          style={{
+            boxShadow: 'rgba(0, 0, 0, 0.20) 0px 0px 3px 3px',
+            borderRadius: '4px',
+            animation: 'dragAnimation 2s',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+          { element }
+        </div>
+      :
+      <div style={{minWidth: "300px"}}>
+        <div
+          style={{
+            position: 'absolute',
+            zIndex: "5",
+            top: "-10px",
+            right: "-15px",
+            borderRadius: '25px',
+            background: '#bc0101',
+            fontSize: '12px',
+            color: 'white',
+            width: '25px',
+            height: '25px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}>
+          {numItems}
+        </div>
+        <div
+          style={{
+            boxShadow: 'rgba(0, 0, 0, 0.30) 5px 3px 3px 0px',
+            borderRadius: '4px',
+            padding: "0 5px 5px 0",
+            display: 'flex',
+            justifyContent: 'flex-start',
+            alignItems: 'flex-start',
+            zIndex: "1"
+          }}>
+          <div
+            style={{
+              borderRadius: '4px',
+              boxShadow: 'rgba(0, 0, 0, 0.20) 0px 0px 3px 2px',
+              border: '1px solid rgba(0, 0, 0, 0.20)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: "2"
+            }}>
+            { element }
+          </div>
+        </div>
+      </div>
+    }      
+    </div>
+  )
+}

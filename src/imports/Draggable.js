@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 
 const POSITION = { x: 0, y: 0 };
 
-const Draggable = ({ children, id, onDragStart, onDrag, onDragEnd }) => {
+const Draggable = ({ children, id, onDragStart, onDrag, onDragEnd, ghostElement=null }) => {
   const [state, setState] = useState({
     isDragging: false,
     origin: POSITION,
@@ -91,22 +91,37 @@ const Draggable = ({ children, id, onDragStart, onDrag, onDragEnd }) => {
 
   const styles = {
     cursor: state.isDragging ? "-webkit-grabbing" : "-webkit-grab",
+    // transform: state.isDragging
+    //   ? `translate(${state.translation.x}px, ${state.translation.y}px)`
+    //   : "",
+    transition: state.isDragging ? "none" : "transform 500ms",
+    // zIndex: state.isDragging ? 2 : 1,
+    // position: state.isDragging ? "absolute" : "relative"
+  };
+
+  const ghostStyles = {
+    cursor: state.isDragging ? "-webkit-grabbing" : "-webkit-grab",
     transform: state.isDragging
       ? `translate(${state.translation.x}px, ${state.translation.y}px)`
       : "",
     transition: state.isDragging ? "none" : "transform 500ms",
     zIndex: state.isDragging ? 2 : 1,
-    position: state.isDragging ? "absolute" : "relative"
-  };
+    opacity: state.isDragging ? 1 : 0,
+    position: state.isDragging ? "absolute" : "relative",
+    left: state.origin.x,
+    top: state.origin.y
+
+  }
 
   return (
     <div
-      key={id}
+      key={`draggable${id}`}
       style={styles}
       onMouseDown={handleMouseDown}
       onTouchStart={handleMouseDown}
     >
       { children }
+      { state.isDragging && <div style={ghostStyles}>{ghostElement}</div>}
     </div>
   );
 };
