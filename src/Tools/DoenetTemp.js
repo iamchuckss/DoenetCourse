@@ -235,6 +235,7 @@ function Browser(props){
 
   const onDragOverContainer = ({ id }) => {
     // console.log("onDragOver", id);
+    // how to insert dummy object?
   };
 
   const onDragEnd = () => {
@@ -508,12 +509,13 @@ const DragGhost = ({ id, element, numItems }) => {
       numItems < 2 ? 
         <div
           style={{
-            boxShadow: 'rgba(0, 0, 0, 0.20) 0px 0px 3px 3px',
+            boxShadow: 'rgba(0, 0, 0, 0.20) 3px 3px 3px 3px',
             borderRadius: '4px',
             animation: 'dragAnimation 2s',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
+            background: "#fff"
           }}>
           { element }
         </div>
@@ -539,18 +541,19 @@ const DragGhost = ({ id, element, numItems }) => {
         </div>
         <div
           style={{
-            boxShadow: 'rgba(0, 0, 0, 0.30) 5px 3px 3px 0px',
+            boxShadow: 'rgba(0, 0, 0, 0.30) 4px 4px 2px 0px',
             borderRadius: '4px',
             padding: "0 5px 5px 0",
             display: 'flex',
             justifyContent: 'flex-start',
             alignItems: 'flex-start',
-            zIndex: "1"
+            zIndex: "1",
+            background: "#fff"
           }}>
           <div
             style={{
               borderRadius: '4px',
-              boxShadow: 'rgba(0, 0, 0, 0.20) 0px 0px 3px 2px',
+              boxShadow: 'rgba(0, 0, 0, 0.20) 3px 3px 2px 2px',
               border: '1px solid rgba(0, 0, 0, 0.20)',
               display: 'flex',
               justifyContent: 'center',
