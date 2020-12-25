@@ -1023,20 +1023,22 @@ function BrowserChild(props){
   </>
 }
 
-const SearchBar = ({ handleSearchChange }) => {
+const SearchBar = ({ show=true, handleSearchChange }) => {
 
   const onChange = (ev) => {
     handleSearchChange?.(ev.target.value);    
   }
 
-  return(
-    <div style={{ padding: "10px", marginBottom: "30px" }}>
+  return(<>
+    {show && 
+    <div style={{}}>
       <input
         onChange={onChange}
         placeholder="Search..."
-        style={{ minHeight: "5px", padding: "10px" , width:"100%"}}
+        style={{ minHeight: "5px", padding: "3px" , minWidth: "30px"}}
       />
-    </div>
+    </div>}
+  </>
   );
 }
 
