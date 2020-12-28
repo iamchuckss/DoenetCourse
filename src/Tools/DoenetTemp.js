@@ -501,6 +501,7 @@ function BrowserChild(props){
                 label:data[1].add.label,
                 creationDate:data[1].add.creationDate,
                 type:data[1].add.type,
+                sortBy: "defaultOrder"
               }
             }
             data.pop();   
@@ -523,6 +524,7 @@ function BrowserChild(props){
             let parentId = data[1].delete.parentId;
             let nodeId = data[1].delete.itemId;
             let childrenIds = data[0].folderChildrenIds[parentId].defaultOrder;
+            data[0].nodeObjs[nodeId].sortBy = "defaultOrder";
             childrenIds.splice(childrenIds.indexOf(nodeId),1);
             // delete data[0].nodeObjs[nodeId]; //Keep for undo?
             data.pop();    
