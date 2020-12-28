@@ -17,8 +17,14 @@ import {
   HashRouter as Router,
   Switch,
   Route,
+  Link,
   useHistory
 } from "react-router-dom";
+import { 
+  BreadcrumbProvider, 
+  BreadcrumbContext, 
+  useBreadcrumbItems
+} from '../imports/Breadcrumb';
 import {
   DropTargetsProvider,
   DropTargetsContext,
@@ -33,10 +39,12 @@ export default function app() {
 
 return <>
   <DropTargetsProvider>
-    <ReactQueryCacheProvider queryCache={queryCache}>
-      <Tool />
-      <ReactQueryDevtools />
-    </ReactQueryCacheProvider>
+    <BreadcrumbProvider>
+      <ReactQueryCacheProvider queryCache={queryCache}>
+        <Tool />
+        <ReactQueryDevtools />
+      </ReactQueryCacheProvider>
+    </BreadcrumbProvider>
   </DropTargetsProvider>
 </>
 };
@@ -47,6 +55,28 @@ const sortOptions = Object.freeze({
   "CREATION_DATE_ASC": "creation date ascending",
   "CREATION_DATE_DESC": "creation date descending"
 });
+
+const BreadcrumbContainer = () => {
+  const items = useBreadcrumbItems();
+
+  return (
+    <div>
+      {items.map((item) => (
+        <BreadcrumbItem key={item.to} linkProps={{ to: item.to }}>
+          {item.text}
+        </BreadcrumbItem>
+      ))}
+    </div>
+  );
+};
+
+const BreadcrumbItem = ({ children, linkProps }) => {
+  return (
+    <Link to={linkProps.to}>
+      {children}
+    </Link>
+  );
+};
 
 //TODO: Replace with the real <Tool /> component
 function Tool(props){
@@ -69,6 +99,8 @@ function Tool(props){
   const { dropState, dropActions } = useContext(DropTargetsContext);
   const [isDragging, setIsDragging] = useState(false);
   const [draggedOverDriveId, setDraggedOverDriveId] = useState(null);
+
+  const { addItem: addBreadcrumbItem , removeItem: removeBreadcrumbItem } = useContext(BreadcrumbContext);
 
   let selectedNodesArr = useRef({}); //{driveId:"id",selectedArr:[{parentId:"id",nodeId:"id"}]}
   let clearSelectionFunctions = useRef({}); //{driveId:"id",selectedArr:[{parentId:"id",nodeId:"id"}]}
@@ -257,23 +289,27 @@ function Tool(props){
     }
   }
 
+  addBreadcrumbItem({to: "ZLHh5s8BWM2azTVFhazI2:fb1/", text: "Test"});
 
   //TODO: in the actual <Tool> replace isNav prop with is a child of <NavPanel>
   //TODO: remove isNav={true} setSelectedNodes={setSelectedNodes} regClearSelection={regClearSelection} DnDState={DnDState}
   //Should be <Browsers types={["content","course"]} /> child of navpanel or not child of navpanel
   return (<>
- <AddItem type="Folder" />
- <AddItem type="Url" />
-
-  <div style={{display:"flex"}}> 
-    <div>
-      {navBrowsers}
+    <AddItem type="Folder" />
+    <AddItem type="Url" />
+    <Router>
+      <BreadcrumbContainer />
+    </Router>
+    
+    <div style={{display:"flex"}}> 
+      <div>
+        {navBrowsers}
+      </div>
+      <div>
+        {nonNavBrowsers}
+      </div>
     </div>
-    <div>
-      {nonNavBrowsers}
-    </div>
-  </div>
-  </>
+    </>
   )
 }
 
