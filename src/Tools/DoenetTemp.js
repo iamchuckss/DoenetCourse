@@ -291,10 +291,10 @@ function Tool(props){
 
 const BreadcrumbContainer = ({ divider = '/', ...props }) => {
   const items = useBreadcrumbItems();
-
-  let children = items.map((item) => (
-    <BreadcrumbItem key={item.to} linkProps={{ to: item.to }}>
-      {item.label}
+  console.log(">>>", items)
+  let children = items.map((item, index) => (
+    <BreadcrumbItem key={`breadcrumbItem${index}`}>
+      {item}
     </BreadcrumbItem>
   ));
 
@@ -329,19 +329,10 @@ const BreadcrumbContainer = ({ divider = '/', ...props }) => {
   return (<ol style={breadcrumbContainerStyle}>{children}</ol>);
 };
 
-const BreadcrumbItem = ({ children, linkProps }) => {
-
-  const breadcrumbItemStyle = {
-    fontSize: "18px",
-    color: "#8a8a8a",
-    textDecoration: "none",
-  }
-
+const BreadcrumbItem = ({ children, ...props }) => {
   return (
-    <li >
-      <Link style={breadcrumbItemStyle} to={linkProps.to}>
-        {children}
-      </Link>
+    <li {...props} >
+      {children}
     </li>
   );
 };
@@ -917,17 +908,33 @@ function BrowserChild(props){
     let breadcrumbStack = [];
     
     // generate folder stack
+    const breadcrumbItemStyle = {
+      fontSize: "18px",
+      color: "#8a8a8a",
+      textDecoration: "none",
+    }
     let data = cache.getQueryData(["nodes", props.drive]);
     let currentNodeId = routePathFolderId;
     while (currentNodeId && currentNodeId !== routePathDriveId) {
       const nodeObj = data?.[0].nodeObjs?.[currentNodeId];
-      const breadcrumbItem = { label: nodeObj?.label, to: `../${routePathDriveId}:${currentNodeId}/`};
-      breadcrumbStack.unshift(breadcrumbItem);
+      const destinationLink = `../${routePathDriveId}:${currentNodeId}/`;
+      const breadcrumbElement = <Link 
+        style={breadcrumbItemStyle} 
+        to={destinationLink}>
+        {nodeObj?.label}
+      </Link>
+
+      breadcrumbStack.unshift(breadcrumbElement);
       currentNodeId = nodeObj?.parentId;
     }
     
     // add current drive to head of stack
-    breadcrumbStack.unshift({ label: props.label, to: `../${routePathDriveId}:${routePathDriveId}/`});
+    let driveDestinationLink = `../${routePathDriveId}:${routePathDriveId}/`;
+    breadcrumbStack.unshift(<Link 
+      style={breadcrumbItemStyle} 
+      to={driveDestinationLink}>
+      {props.label}
+    </Link>);
 
     // add items in stack to breadcrumb
     for (let item of breadcrumbStack) {
