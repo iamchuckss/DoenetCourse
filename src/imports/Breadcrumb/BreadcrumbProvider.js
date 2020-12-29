@@ -6,6 +6,12 @@ export const BreadcrumbProvider = ({ children }) => {
   const itemsRef = useRef([]);
   const listernersRef = useRef([]);
   const addItem = useCallback((item) => {
+    const index = itemsRef.current.findIndex((i) => i.to === item.to);
+
+    if (index > -1) {
+      return item;
+    }
+
     itemsRef.current = [...itemsRef.current, item];
     listernersRef.current.forEach((listener) => listener(itemsRef.current));
 

@@ -291,10 +291,10 @@ function Tool(props){
 
 const BreadcrumbContainer = ({ divider = '/', ...props }) => {
   const items = useBreadcrumbItems();
-  console.log(">>>", items)
+  
   let children = items.map((item, index) => (
     <BreadcrumbItem key={`breadcrumbItem${index}`}>
-      {item}
+      {item.element}
     </BreadcrumbItem>
   ));
 
@@ -924,17 +924,25 @@ function BrowserChild(props){
         {nodeObj?.label}
       </Link>
 
-      breadcrumbStack.unshift(breadcrumbElement);
+      const breadcrumbObj = {
+        to: destinationLink,
+        element: breadcrumbElement
+      }
+
+      breadcrumbStack.unshift(breadcrumbObj);
       currentNodeId = nodeObj?.parentId;
     }
     
     // add current drive to head of stack
     let driveDestinationLink = `../${routePathDriveId}:${routePathDriveId}/`;
-    breadcrumbStack.unshift(<Link 
-      style={breadcrumbItemStyle} 
-      to={driveDestinationLink}>
-      {props.label}
-    </Link>);
+    breadcrumbStack.unshift({
+      to: driveDestinationLink,
+      element: <Link 
+        style={breadcrumbItemStyle} 
+        to={driveDestinationLink}>
+        {props.label}
+      </Link>
+    });
 
     // add items in stack to breadcrumb
     for (let item of breadcrumbStack) {
@@ -943,8 +951,11 @@ function BrowserChild(props){
   }
 
   useEffect(() => {
+    if (isFetching) return;
+
     if (routePathDriveId === "") {
       clearBreadcrumb();
+      addBreadcrumbItem({to: "/", element: <div>/</div>})
     }
     if (props.drive === routePathDriveId) {
       updateBreadcrumb?.();
@@ -998,7 +1009,6 @@ function BrowserChild(props){
           folderChildrenIds[nodeId] = {[sortKey]: []};
         }
       }
-      console.log(">>>", folderChildrenIds)
     }
 
     let childrenIdsArr = folderChildrenIds?.[parentId]?.[childrenIdsOrder];
