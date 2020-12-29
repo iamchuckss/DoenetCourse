@@ -22,10 +22,17 @@ export const BreadcrumbProvider = ({ children }) => {
 
     return item;
   }, []);
+
   const removeItem = useCallback((item) => {
     itemsRef.current = itemsRef.current.filter((i) => i.to !== item.to);
     listernersRef.current.forEach((listener) => listener(itemsRef.current));
   }, []);
+
+  const clearItems = useCallback(() => {
+    itemsRef.current = [itemsRef.current[0]];
+    listernersRef.current.forEach((listener) => listener(itemsRef.current));
+  }, []);
+
   const subscribe = useCallback((listener) => {
     listernersRef.current.push(listener);
 
@@ -39,7 +46,7 @@ export const BreadcrumbProvider = ({ children }) => {
     };
   }, []);
   return (
-    <BreadcrumbContext.Provider value={{ addItem, removeItem, subscribe }}>
+    <BreadcrumbContext.Provider value={{ addItem, removeItem, clearItems, subscribe }}>
       {children}
     </BreadcrumbContext.Provider>
   );

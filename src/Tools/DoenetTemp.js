@@ -56,28 +56,6 @@ const sortOptions = Object.freeze({
   "CREATION_DATE_DESC": "creation date descending"
 });
 
-const BreadcrumbContainer = () => {
-  const items = useBreadcrumbItems();
-
-  return (
-    <div>
-      {items.map((item) => (
-        <BreadcrumbItem key={item.to} linkProps={{ to: item.to }}>
-          {item.text}
-        </BreadcrumbItem>
-      ))}
-    </div>
-  );
-};
-
-const BreadcrumbItem = ({ children, linkProps }) => {
-  return (
-    <Link to={linkProps.to}>
-      {children}
-    </Link>
-  );
-};
-
 //TODO: Replace with the real <Tool /> component
 function Tool(props){
   console.log("=== Tool")
@@ -99,8 +77,6 @@ function Tool(props){
   const { dropState, dropActions } = useContext(DropTargetsContext);
   const [isDragging, setIsDragging] = useState(false);
   const [draggedOverDriveId, setDraggedOverDriveId] = useState(null);
-
-  const { addItem: addBreadcrumbItem , removeItem: removeBreadcrumbItem } = useContext(BreadcrumbContext);
 
   let selectedNodesArr = useRef({}); //{driveId:"id",selectedArr:[{parentId:"id",nodeId:"id"}]}
   let clearSelectionFunctions = useRef({}); //{driveId:"id",selectedArr:[{parentId:"id",nodeId:"id"}]}
@@ -289,7 +265,7 @@ function Tool(props){
     }
   }
 
-  addBreadcrumbItem({to: "ZLHh5s8BWM2azTVFhazI2:fb1/", text: "Test"});
+  // addBreadcrumbItem({to: "../ZLHh5s8BWM2azTVFhazI2:fb1/", label: "Test"});
 
   //TODO: in the actual <Tool> replace isNav prop with is a child of <NavPanel>
   //TODO: remove isNav={true} setSelectedNodes={setSelectedNodes} regClearSelection={regClearSelection} DnDState={DnDState}
@@ -313,6 +289,78 @@ function Tool(props){
   )
 }
 
+const BreadcrumbContainer = ({ divider = '/', ...props }) => {
+  const items = useBreadcrumbItems();
+
+  let children = items.map((item) => (
+    <BreadcrumbItem key={item.to} linkProps={{ to: item.to }}>
+      {item.label}
+    </BreadcrumbItem>
+  ));
+
+  const lastIndex = children.length - 1;
+  children = children.reduce((acc, child, index) => {
+    let notLast = index < lastIndex;
+    if (notLast) {
+      acc.push(
+        child,
+        <BreadcrumbDivider key={`breadcrumbDivider${index}`}>
+          {divider}
+        </BreadcrumbDivider>,
+      )
+    } else {
+      acc.push(child);
+    }
+    return acc;
+  }, [])
+
+  const breadcrumbContainerStyle = {
+    listStyle: "none",
+    display: "flex",
+    flexWrap: "wrap",
+    overflow: "hidden",
+    alignItems: "center",
+    padding: "12px 0",
+    width: "100%",
+    borderBottom: "1px solid #cdcdcd",
+    margin: "0",
+  }
+
+  return (<ol style={breadcrumbContainerStyle}>{children}</ol>);
+};
+
+const BreadcrumbItem = ({ children, linkProps }) => {
+
+  const breadcrumbItemStyle = {
+    fontSize: "18px",
+    color: "#8a8a8a",
+    textDecoration: "none",
+  }
+
+  return (
+    <li >
+      <Link style={breadcrumbItemStyle} to={linkProps.to}>
+        {children}
+      </Link>
+    </li>
+  );
+};
+
+const BreadcrumbDivider = ({ children, ...props }) => {
+  
+  const breadcrumbDividerStyle = {
+    color: "#8a8a8a",
+    margin: "auto 6px",
+    userSelect: "none",
+    fontSize: "20px",
+  }
+  
+  return (
+    <li style={breadcrumbDividerStyle} {...props}>
+      {children}
+    </li>
+  );
+}
 
 const addItemMutation = async ({itemId, label, driveId, parentId,type}) =>{
 
@@ -480,6 +528,7 @@ function BrowserChild(props){
         if (routePathFolderId !== ""){pathFolderId = routePathFolderId;}
       }
     }
+
   //If navigation then build from root else build from path
   let rootFolderId = pathFolderId;
   if(props.isNav){
@@ -493,6 +542,7 @@ function BrowserChild(props){
   const [selectedNodes,setSelectedNodes] = useState({});
   const { DnDState, DnDActions } = props.DnDState;
   const [filter, setFilter] = useState(null);
+  const { addItem: addBreadcrumbItem , removeItem: removeBreadcrumbItem, clearItems: clearBreadcrumb } = useContext(BreadcrumbContext);
 
   const {
     data,
@@ -860,6 +910,39 @@ function BrowserChild(props){
   },[]);
 
   if (browserId.current === ""){ browserId.current = nanoid();}
+
+
+  const updateBreadcrumb = () => {
+    clearBreadcrumb();
+    let breadcrumbStack = [];
+    
+    // generate folder stack
+    let data = cache.getQueryData(["nodes", props.drive]);
+    let currentNodeId = routePathFolderId;
+    while (currentNodeId && currentNodeId !== routePathDriveId) {
+      const nodeObj = data?.[0].nodeObjs?.[currentNodeId];
+      const breadcrumbItem = { label: nodeObj?.label, to: `../${routePathDriveId}:${currentNodeId}/`};
+      breadcrumbStack.unshift(breadcrumbItem);
+      currentNodeId = nodeObj?.parentId;
+    }
+    
+    // add current drive to head of stack
+    breadcrumbStack.unshift({ label: props.label, to: `../${routePathDriveId}:${routePathDriveId}/`});
+
+    // add items in stack to breadcrumb
+    for (let item of breadcrumbStack) {
+      addBreadcrumbItem(item);      
+    }
+  }
+
+  useEffect(() => {
+    if (routePathDriveId === "") {
+      clearBreadcrumb();
+    }
+    if (props.drive === routePathDriveId) {
+      updateBreadcrumb?.();
+    }
+  }, [routePathDriveId, routePathFolderId, isFetching])  
 
   useEffect(()=>{
     if (props.regClearSelection){
