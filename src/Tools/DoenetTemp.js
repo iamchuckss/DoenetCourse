@@ -77,6 +77,7 @@ function Tool(props){
   const { dropState, dropActions } = useContext(DropTargetsContext);
   const [isDragging, setIsDragging] = useState(false);
   const [draggedOverDriveId, setDraggedOverDriveId] = useState(null);
+  const isDraggedOverBreadcrumb = useRef(false);
 
   let selectedNodesArr = useRef({}); //{driveId:"id",selectedArr:[{parentId:"id",nodeId:"id"}]}
   let clearSelectionFunctions = useRef({}); //{driveId:"id",selectedArr:[{parentId:"id",nodeId:"id"}]}
@@ -200,11 +201,12 @@ function Tool(props){
     dropActions.handleDrag(clientX, clientY, id);
   };
 
-  const onDragOverContainer = ({ id, driveId }) => {
+  const onDragOverContainer = ({ id, driveId, isBreadcrumb=false }) => {
     // update driveId if changed
     if (draggedOverDriveId !== driveId) {
       setDraggedOverDriveId(driveId);
     }
+    isDraggedOverBreadcrumb.current = isBreadcrumb;
   };
 
   const onDragEnd = () => {
@@ -221,7 +223,6 @@ function Tool(props){
     } else {
 
     }
-
     setIsDragging(false);
     setDraggedOverDriveId(null);
     dropActions.handleDrop();
@@ -229,9 +230,10 @@ function Tool(props){
 
   const DnDState = {
     DnDState: {
-      activeDropTargetId:dropState.activeDropTargetId,
+      activeDropTargetId: dropState.activeDropTargetId,
       isDragging,
       draggedOverDriveId,
+      isDraggedOverBreadcrumb: isDraggedOverBreadcrumb.current
     },
     DnDActions: {
       onDragStart,
@@ -918,11 +920,25 @@ function BrowserChild(props){
     while (currentNodeId && currentNodeId !== routePathDriveId) {
       const nodeObj = data?.[0].nodeObjs?.[currentNodeId];
       const destinationLink = `../${routePathDriveId}:${currentNodeId}/`;
+      // const draggedOver = DnDState.activeDropTargetId === currentNodeId && DnDState.isDraggedOverBreadcrumb;  
       const breadcrumbElement = <Link 
         style={breadcrumbItemStyle} 
         to={destinationLink}>
         {nodeObj?.label}
       </Link>
+
+      breadcrumbElement = <WithDropTarget
+        key={`wdtbreadcrumb${props.drive}${currentNodeId}`} 
+        id={currentNodeId}
+        registerDropTarget={DnDActions.registerDropTarget} 
+        unregisterDropTarget={DnDActions.unregisterDropTarget}
+        dropCallbacks={{
+          onDragOver: () => DnDActions.onDragOverContainer({ id: currentNodeId, driveId: props.drive, isBreadcrumb: true }),
+          onDrop: () => {}
+        }}
+        >
+        { breadcrumbElement } 
+      </WithDropTarget>
 
       const breadcrumbObj = {
         to: destinationLink,
@@ -934,14 +950,26 @@ function BrowserChild(props){
     }
     
     // add current drive to head of stack
-    let driveDestinationLink = `../${routePathDriveId}:${routePathDriveId}/`;
-    breadcrumbStack.unshift({
-      to: driveDestinationLink,
-      element: <Link 
+    const driveDestinationLink = `../${routePathDriveId}:${routePathDriveId}/`;
+    const driveBreadcrumbElement = <WithDropTarget
+      key={`wdtbreadcrumb${props.drive}`} 
+      id={routePathDriveId}
+      registerDropTarget={DnDActions.registerDropTarget} 
+      unregisterDropTarget={DnDActions.unregisterDropTarget}
+      dropCallbacks={{
+        onDragOver: () => DnDActions.onDragOverContainer({ id: routePathDriveId, driveId: props.drive, isBreadcrumb: true }),
+        onDrop: () => {}
+      }}
+      >
+      <Link 
         style={breadcrumbItemStyle} 
         to={driveDestinationLink}>
         {props.label}
       </Link>
+    </WithDropTarget>
+    breadcrumbStack.unshift({
+      to: driveDestinationLink,
+      element: driveBreadcrumbElement
     });
 
     // add items in stack to breadcrumb
@@ -960,7 +988,7 @@ function BrowserChild(props){
     if (props.drive === routePathDriveId) {
       updateBreadcrumb?.();
     }
-  }, [routePathDriveId, routePathFolderId, isFetching])  
+  }, [routePathDriveId, routePathFolderId, isFetching, DnDState.isDraggedOverBreadcrumb])  
 
   useEffect(()=>{
     if (props.regClearSelection){
@@ -1052,7 +1080,7 @@ function BrowserChild(props){
             appearance = "selected";
           } else if (selectedNodes[nodeId]){ 
             appearance = "selected";
-          } else if (DnDState.activeDropTargetId === nodeId) {
+          } else if (DnDState.activeDropTargetId === nodeId && !DnDState.isDraggedOverBreadcrumb) {
             appearance = "dropperview";
           }
 
