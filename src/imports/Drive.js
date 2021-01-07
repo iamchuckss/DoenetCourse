@@ -69,7 +69,7 @@ export default function Drive(props){
       refetchOnMount:false,
       staleTime:600000,
   });
-  if (isFetching){ return null;}
+  if (isFetching || !driveData){ return null;}
 
   if (props.types){
     let drives = [];
@@ -1051,7 +1051,7 @@ const LoadingNode =  React.memo(function Node(props){
       className="noselect" 
       style={{
         marginLeft: `${props.level * indentPx}px`
-      }}>[U] {props.label} {deleteNode}</div></div>
+      }}>[D] {props.label} {deleteNode}</div></div>
     
     </>
     }else if (props.type === "Url"){
@@ -1085,7 +1085,7 @@ const LoadingNode =  React.memo(function Node(props){
         className="noselect" 
         style={{
           marginLeft: `${props.level * indentPx}px`
-        }}>[D] {props.label} {deleteNode}</div></div>
+        }}>[U] {props.label} {deleteNode}</div></div>
       
       </>
   }else{
