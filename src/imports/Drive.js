@@ -363,7 +363,6 @@ function Browser(props){
   
     const onDragOverContainer = ({ id, driveId, isBreadcrumb=false }) => {
       // update driveId if changed
-      console.log(">>>", isBreadcrumb)
       if (dragState.draggedOverDriveId !== driveId) {
         setDragState((dragState) => ({
           ...dragState,
