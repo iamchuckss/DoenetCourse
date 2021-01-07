@@ -35,7 +35,8 @@ import {
   HashRouter as Router,
   Switch,
   Route,
-  useHistory
+  useHistory,
+  Link
 } from "react-router-dom";
 
 export const globalSelectedNodesAtom = atom({
@@ -48,7 +49,6 @@ const dragStateAtom = atom({
   default: {
     isDragging: false,
     draggedOverDriveId: null,
-    isDraggedOverBreadcrumb: false
   }
 })
 
@@ -163,6 +163,7 @@ function Browser(props){
   const [dragState, setDragState] = useRecoilState(dragStateAtom);
   const [filter, setFilter] = useState(null);
   const { addItem: addBreadcrumbItem , removeItem: removeBreadcrumbItem, clearItems: clearBreadcrumb } = useContext(BreadcrumbContext);
+  const isDraggedOverBreadcrumb = useRef(false);
 
   let setGlobalSelectedNodes = useSetRecoilState(globalSelectedNodesAtom);
 
@@ -349,7 +350,6 @@ function Browser(props){
     }});
 
     const onDragStart = ({ nodeId, driveId }) => {
-      console.log(">>>", "Here");
       setDragState((dragState) => ({
         ...dragState,
         isDragging: true,
@@ -363,16 +363,14 @@ function Browser(props){
   
     const onDragOverContainer = ({ id, driveId, isBreadcrumb=false }) => {
       // update driveId if changed
+      console.log(">>>", isBreadcrumb)
       if (dragState.draggedOverDriveId !== driveId) {
         setDragState((dragState) => ({
           ...dragState,
           draggedOverDriveId: driveId
         }));
       }
-      setDragState((dragState) => ({
-        ...dragState,
-        isDraggedOverBreadcrumb: isBreadcrumb
-      }));
+      isDraggedOverBreadcrumb.current = isBreadcrumb;
     };
   
     const onDragEnd = () => {
@@ -605,12 +603,15 @@ function Browser(props){
       color: "#8a8a8a",
       textDecoration: "none",
     }
-    let data = cache.getQueryData(["nodes", props.drive]);
+    let data = cache.getQueryData(["nodes", props.driveId]);
     let currentNodeId = routePathFolderId;
     while (currentNodeId && currentNodeId !== routePathDriveId) {
       const nodeObj = data?.[0].nodeObjs?.[currentNodeId];
-      const destinationLink = `../${routePathDriveId}:${currentNodeId}/`;
-      // const draggedOver = DnDState.activeDropTargetId === currentNodeId && DnDState.isDraggedOverBreadcrumb;  
+
+      let newParams = {...urlParamsObj} 
+      newParams['path'] = `${routePathDriveId}:${currentNodeId}::/`;
+      const destinationLink = `../?${encodeParams(newParams)}`
+      // const draggedOver = DnDState.activeDropTargetId === currentNodeId && isDraggedOverBreadcrumb.current;  
       const breadcrumbElement = <Link 
         style={breadcrumbItemStyle} 
         to={destinationLink}>
@@ -618,12 +619,12 @@ function Browser(props){
       </Link>
 
       breadcrumbElement = <WithDropTarget
-        key={`wdtbreadcrumb${props.drive}${currentNodeId}`} 
+        key={`wdtbreadcrumb${props.driveId}${currentNodeId}`} 
         id={currentNodeId}
         registerDropTarget={dropActions.registerDropTarget} 
         unregisterDropTarget={dropActions.unregisterDropTarget}
         dropCallbacks={{
-          onDragOver: () => onDragOverContainer({ id: currentNodeId, driveId: props.drive, isBreadcrumb: true }),
+          onDragOver: () => onDragOverContainer({ id: currentNodeId, driveId: props.driveId, isBreadcrumb: true }),
           onDrop: () => {}
         }}
         >
@@ -640,14 +641,17 @@ function Browser(props){
     }
     
     // add current drive to head of stack
-    const driveDestinationLink = `../${routePathDriveId}:${routePathDriveId}/`;
+    let newParams = {...urlParamsObj} 
+    newParams['path'] = `${routePathDriveId}:${routePathDriveId}::/`;
+    const driveDestinationLink = `../?${encodeParams(newParams)}`
+    
     const driveBreadcrumbElement = <WithDropTarget
-      key={`wdtbreadcrumb${props.drive}`} 
+      key={`wdtbreadcrumb${props.driveId}`} 
       id={routePathDriveId}
       registerDropTarget={dropActions.registerDropTarget} 
       unregisterDropTarget={dropActions.unregisterDropTarget}
       dropCallbacks={{
-        onDragOver: () => onDragOverContainer({ id: routePathDriveId, driveId: props.drive, isBreadcrumb: true }),
+        onDragOver: () => onDragOverContainer({ id: routePathDriveId, driveId: props.driveId, isBreadcrumb: true }),
         onDrop: () => {}
       }}
       >
@@ -675,10 +679,11 @@ function Browser(props){
       clearBreadcrumb();
       addBreadcrumbItem({to: "/", element: <div>/</div>})
     }
-    if (props.drive === routePathDriveId) {
+
+    if (props.driveId === routePathDriveId) {
       updateBreadcrumb?.();
     }
-  }, [routePathDriveId, routePathFolderId, isFetching, dragState.isDraggedOverBreadcrumb])  
+  }, [routePathDriveId, routePathFolderId, isFetching, isDraggedOverBreadcrumb.current])  
  
   // //------------------------------------------
   // //****** End of use functions  ***********
@@ -721,7 +726,6 @@ function Browser(props){
           folderChildrenIds[nodeId] = {[sortKey]: []};
         }
       }
-      console.log(">>>", folderChildrenIds)
     }
 
     let childrenIdsArr = folderChildrenIds?.[parentId]?.[childrenIdsOrder];
