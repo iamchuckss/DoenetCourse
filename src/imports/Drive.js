@@ -591,6 +591,19 @@ function Browser(props){
   },[]);
 
   if (browserId.current === ""){ browserId.current = nanoid();}
+
+  const getNodesOnPath = ({currentNodeId, end}) => {
+
+    let data = cache.getQueryData(["nodes", props.driveId]);
+
+    let list = [];
+    while (currentNodeId && currentNodeId !== end) {
+      const nodeObj = data?.[0].nodeObjs?.[currentNodeId];
+      list.push(currentNodeId);
+      currentNodeId = nodeObj?.parentId;
+    }
+    return list;
+  }
   
   const updateBreadcrumb = () => {
     clearBreadcrumb();
@@ -603,8 +616,9 @@ function Browser(props){
       textDecoration: "none",
     }
     let data = cache.getQueryData(["nodes", props.driveId]);
-    let currentNodeId = routePathFolderId;
-    while (currentNodeId && currentNodeId !== routePathDriveId) {
+    let nodesOnPath = getNodesOnPath({ currentNodeId: routePathFolderId, end: routePathDriveId});
+    
+    for (let currentNodeId of nodesOnPath ) {
       const nodeObj = data?.[0].nodeObjs?.[currentNodeId];
 
       let newParams = {...urlParamsObj} 
@@ -636,7 +650,6 @@ function Browser(props){
       }
 
       breadcrumbStack.unshift(breadcrumbObj);
-      currentNodeId = nodeObj?.parentId;
     }
     
     // add current drive to head of stack
@@ -671,6 +684,7 @@ function Browser(props){
     }
   }
 
+  // handle breadcrumb
   useEffect(() => {
     if (isFetching) return;
 
@@ -682,7 +696,22 @@ function Browser(props){
     if (props.driveId === routePathDriveId) {
       updateBreadcrumb?.();
     }
-  }, [routePathDriveId, routePathFolderId, isFetching, isDraggedOverBreadcrumb.current])  
+  }, [routePathDriveId, routePathFolderId, isFetching, isDraggedOverBreadcrumb.current])
+
+  // handle reopen path to target folder in nav
+  useEffect(() => {
+    if (isFetching || routePathDriveId === "" || routePathFolderId === "") return;
+    
+    let nodesOnPath = getNodesOnPath({ currentNodeId: routePathFolderId, end: routePathDriveId});
+
+    for (let currentNodeId of nodesOnPath) {
+      setOpenNodesObj((old)=>{
+        let newObj = {...old};
+        newObj[currentNodeId] = true;
+        return newObj;
+      })
+    }
+  }, [routePathDriveId, routePathFolderId, isFetching])
  
   // //------------------------------------------
   // //****** End of use functions  ***********
