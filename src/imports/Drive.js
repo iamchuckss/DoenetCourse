@@ -442,6 +442,17 @@ export const folderDictionarySelector = selectorFamily({
         })
 
         break;
+      case "clear sort order cache":
+        set(folderDictionary(driveIdFolderId),(old)=>{
+          let newObj = { ...old };
+          let { contentIds } = newObj;
+
+          newObj.contentIds = { ...contentIds[sortOptions.DEFAULT] };        
+          console.log(">>>", newObj)  
+          return newObj;
+        })
+
+        break;
       case "rename item":
         //Rename Item in folder
         newFInfo["contentsDictionary"] = {...fInfo.contentsDictionary}
@@ -794,6 +805,8 @@ export const folderInfoSelector = selectorFamily({
     
     const {folderInfo, contentsDictionary, contentIds} = get(folderDictionarySelector({driveId, folderId}))
     const folderSortOrder = get(folderSortOrderSelector(driveIdInstanceIdFolderId))
+
+    // TODO: send sort instruction if folderSortOrder not exists
     const contentIdsArr = contentIds[folderSortOrder] ?? [];
     
     let newFolderInfo = { ...folderInfo };
@@ -803,9 +816,12 @@ export const folderInfoSelector = selectorFamily({
   set: (driveIdInstanceIdFolderId) => async ({set,get}, instructions)=>{
     const { driveId, folderId } = driveIdInstanceIdFolderId;
 
-    const dirtyActions = new Set(["addItem", "delete item"])
+    const dirtyActions = new Set(["addItem", "delete item", "rename item"]);
+    console.log(">>>trigger clear sort order cache", dirtyActions.has(instructions.instructionType), dirtyActions)
     if (dirtyActions.has(instructions.instructionType)) {
       set(folderSortOrderSelector(driveIdInstanceIdFolderId), sortOptions.DEFAULT);
+      console.log(">>>trigger clear sort order cache")
+      set(folderDictionarySelector({driveId, folderId}), {instructionType: "clear sort order cache"});
     }
 
     switch(instructions.instructionType){
