@@ -359,61 +359,7 @@ export const folderDictionarySelector = selectorFamily({
     return get(folderDictionary(driveIdFolderId));
   },
   set: (driveIdFolderId) => async ({set,get},instructions)=>{
-    const fInfo = get(folderDictionary(driveIdFolderId))
-    const { dragShadowDriveId, dragShadowParentId, draggedItemsId, openedFoldersInfo } = get(dragStateAtom);
-    let dragShadowParentFolderInfoObj = null;
-    
-    let newFInfo = {...fInfo}
-
-    // console.log(">>>finfo",fInfo)
-    switch(instructions.instructionType){
-      case folderInfoSelectorActions.RENAME_ITEM:
-
-        // .then((resp)=>console.log(">>>resp",resp.data))
-      break;
-      case folderInfoSelectorActions.PUBLISH_ASSIGNMENT:
-        set(folderDictionary(driveIdFolderId),(old)=>{
-          let newObj = JSON.parse(JSON.stringify(old));
-          let newItemObj = newObj.contentsDictionary[instructions.itemId];          
-          newItemObj.assignment_isPublished = "1";
-          newItemObj.isAssignment = "1";
-          newItemObj.assignment_title = instructions.payload.title;
-          newItemObj.assignmentId=instructions.payload.assignmentId;
-          return newObj;
-        })
-        break;
-      case folderInfoSelectorActions.PUBLISH_CONTENT:
-        set(folderDictionary(driveIdFolderId),(old)=>{
-          let newObj = JSON.parse(JSON.stringify(old));
-          let newItemObj = newObj.contentsDictionary[instructions.itemId];
-          newItemObj.isPublished = "1";
-          return newObj;
-        })
         
-      break;
-      case folderInfoSelectorActions.ASSIGNMENT_TO_CONTENT:
-        set(folderDictionary(driveIdFolderId),(old)=>{
-          let newObj = JSON.parse(JSON.stringify(old));
-          let newItemObj = newObj.contentsDictionary[instructions.itemId];
-          newItemObj.isAssignment = "0";
-          return newObj;
-        })
-     
-      break;
-      case folderInfoSelectorActions.UPDATE_ASSIGNMENT_TITLE:
-        set(folderDictionary(driveIdFolderId),(old)=>{
-          let newObj = JSON.parse(JSON.stringify(old));
-          let newItemObj = newObj.contentsDictionary[instructions.itemId];          
-          newItemObj.isAssignment = "1";
-          newItemObj.assignment_title = instructions.payloadAssignment.title;
-          newItemObj.assignmentId=instructions.payloadAssignment.assignmentId;
-          return newObj;
-        })
-        break;
-      default:
-        console.warn(`Instruction ${instructions.instructionType} not currently handled`)
-    }
-    
   }
   // set:(setObj,newValue)=>({set,get})=>{
   //   console.log("setObj",setObj,newValue);
@@ -1077,13 +1023,6 @@ function Folder(props){
     const cursorY = y;
     const cursorArea = (cursorY - dropTargetTopY) / dropTargetHeight;
     
-    // Open folder if initially closed
-    if (!isOpenRef.current && !isSelectedRef.current) {
-      toggleOpen();
-      // Mark current folder to close on dragEnd
-      markFolderDraggedOpened();
-    }
-    
     if (parentFolderSortOrderRef.current === sortOptions.DEFAULT) {
       if (cursorArea < 0.5) {
         // insert shadow to top of current dropTarget
@@ -1110,6 +1049,13 @@ function Folder(props){
   const onDragHover = () => {
     if (props.isNav) return;
 
+    // Open folder if initially closed
+    if (!isOpenRef.current && !isSelectedRef.current) {
+      toggleOpen();
+      // Mark current folder to close on dragEnd
+      markFolderDraggedOpened();
+    }
+
     insertDragShadow({
       driveIdFolderId: {driveId: props.driveId, folderId: props.folderId},
       parentId: props.folderId,
@@ -1121,9 +1067,7 @@ function Folder(props){
   }
 
   const onDragEndCb = () => {
-    setFolderInfo({instructionType: folderInfoSelectorActions.CLEAN_UP_DRAG});
     onDragEnd();
-    setFolderInfo({instructionType: folderInfoSelectorActions.REMOVE_DRAG_SHADOW});
   }
 
   const sortNodeButtonFactory = ({ buttonLabel, sortKey, sortHandler }) => {
