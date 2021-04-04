@@ -947,8 +947,12 @@ function Folder(props){
   let widthSize = "60vw";
   if (props.isNav) {marginSize = "0px"; widthSize = "224px"};
   if (isSelected) { bgcolor = "hsl(209,54%,82%)";  }
-  if (dropState.activeDropTargetId === itemId) { bgcolor = "hsl(209,54%,82%)"; }
   if (isSelected && dragState.isDragging) { bgcolor = "#e2e2e2"; }  
+
+  const isDraggedOver = dropState.activeDropTargetId === itemId && !dragState.draggedItemsId?.has(itemId);
+  if (isDraggedOver) { bgcolor = "hsl(209,54%,82%)"; }
+  const isDropTargetFolder = dragState.dragShadowParentId === itemId;
+  if (isDropTargetFolder) { bgcolor = "hsl(209,54%,82%)"; }
 
   // Update refs for variables used in DnD callbacks to eliminate re-registration
   useEffect(() => {
