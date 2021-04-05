@@ -12,9 +12,14 @@ export default function DropTargetsProvider({ children }) {
   const [activeDropTargetId, setActiveDropTargetId] = useState(null);
   const dropTargetsRef = useRef({});
 
+  // Refs needed to communicate updates with timer closures
   const timerRef = useRef(null);
   const timerDropTargetId = useRef(null);
-  const [initializingDragHover, setInitializingDragHover] = useState(false); 
+  const activeDropTargetIdRef = useRef(null);
+
+  useEffect(() => {
+    activeDropTargetIdRef.current = activeDropTargetId;
+  }, [activeDropTargetId])
 
   const getDropTargetFromCursor = useCallback(
     (x, y, ignoreId = null) => {
@@ -79,10 +84,11 @@ export default function DropTargetsProvider({ children }) {
     if (timerDropTargetId.current === dropTargetId ) return;
 
     if (dropTargetId) {
-      setInitializingDragHover(true);
       timerDropTargetId.current = dropTargetId;
       timerRef.current = setTimeout(() => {
-        if (dropTargetObj.onDragHover) dropTargetObj.onDragHover();
+        if (dropTargetObj.onDragHover && activeDropTargetIdRef.current) {
+          dropTargetObj.onDragHover();
+        }
         timerRef.current = null;
       }, 1500);
     }
@@ -93,7 +99,6 @@ export default function DropTargetsProvider({ children }) {
       clearTimeout(timerRef.current);
     }
     timerDropTargetId.current = null;
-    setInitializingDragHover(false);
   }
 
   const handleDrop = (selfId = null) => {
