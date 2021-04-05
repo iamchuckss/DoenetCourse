@@ -954,6 +954,9 @@ function Folder(props){
   const isDropTargetFolder = dragState.dragShadowParentId === itemId;
   if (isDropTargetFolder) { bgcolor = "hsl(209,54%,82%)"; }
 
+  // const test = dragState.dragShadowParentId === props.item?.parentFolderId && !dragState.draggedItemsId?.has(itemId);
+  // if (test) { borderSide = "2px dotted #37ceff"; }
+
   // Update refs for variables used in DnD callbacks to eliminate re-registration
   useEffect(() => {
     isOpenRef.current = isOpen;
@@ -1405,13 +1408,15 @@ const EmptyNode =  React.memo(function Node(props){
 const DragShadow =  React.memo(function Node(props){
   const indentPx = 20;
   return (<div style={{
-    // width: "840px",
-    padding: "8px",
-    backgroundColor: "#8dff45",
-    margin: "2px",
+    width: "100%",
+    height: "33px",
     marginLeft: `${props.indentLevel * indentPx}px`,
-  
-  }} ><div className="noselect" style={{marginLeft: "50px"}}>Drag shadow</div></div>)
+    padding: "0px",
+    backgroundColor: "#f5f5f5",
+    color: "#f5f5f5",
+    boxShadow: "0 0 3px rgba(0, 0, 0, .2)",
+    border: "2px dotted #14c6ff"
+  }} ><div className="noselect">.</div></div>)
 })
 
 function LogVisible(props){
