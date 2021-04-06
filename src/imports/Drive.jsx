@@ -940,7 +940,7 @@ function Folder(props){
     setInstanceParentId(props.pathItemId);
   },[props.pathItemId])
 
-  const indentPx = 20;
+  const indentPx = 25;
   let bgcolor = "#f6f8ff";
   let borderSide = "0px";
   let marginSize = "0";
@@ -950,7 +950,10 @@ function Folder(props){
   if (isSelected && dragState.isDragging) { bgcolor = "#e2e2e2"; }  
 
   const isDraggedOver = dropState.activeDropTargetId === itemId && !dragState.draggedItemsId?.has(itemId);
-  if (isDraggedOver) { bgcolor = "hsl(209,54%,82%)"; }
+  let textColor = "#000000";
+  if (isDraggedOver) { 
+    bgcolor = "#f0f0f0";
+  }
   const isDropTargetFolder = dragState.dragShadowParentId === itemId;
   if (isDropTargetFolder) { bgcolor = "hsl(209,54%,82%)"; }
 
@@ -1406,7 +1409,7 @@ const EmptyNode =  React.memo(function Node(props){
 })
 
 const DragShadow =  React.memo(function Node(props){
-  const indentPx = 20;
+  const indentPx = 30;
   return (<div style={{
     width: "100%",
     height: "33px",
@@ -1610,7 +1613,7 @@ const DoenetML = React.memo((props)=>{
   const parentFolderSortOrderRef = useRef(parentFolderSortOrder);  // for memoized DnD callbacks
   const {insertDragShadow} = useDragShadowCallbacks();
   
-  const indentPx = 20;
+  const indentPx = 30;
 
   let woIndent = 250 - props.indentLevel * indentPx;
   let columns = `${woIndent}px repeat(3,1fr)`;
@@ -1812,7 +1815,7 @@ const Url = React.memo((props)=>{
   const globalSelectedNodes = useRecoilValue(globalSelectedNodesAtom); 
   const [selectedDrive, setSelectedDrive] = useRecoilState(selectedDriveAtom); 
 
-  const indentPx = 20;
+  const indentPx = 30;
   let bgcolor = "#f6f8ff";
   let borderSide = "0px 0px 0px 0px";
   let widthSize = "60vw";
